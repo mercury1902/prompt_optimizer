@@ -17,7 +17,10 @@ export function getAllTools(): Tool[] {
 }
 
 export function getToolDefinitions() {
-  return getAllTools().map((tool) => tool.definition);
+  return getAllTools().map((tool) => ({
+    type: "function" as const,
+    function: tool.definition,
+  }));
 }
 
 export function hasTool(name: string): boolean {

@@ -1,0 +1,36 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { CommandBrowserWithSearch } from '../../components/command-guide/command-browser-with-search';
+import { Terminal, ArrowLeft } from 'lucide-react';
+---
+
+<Layout title="Command Browser" description="Danh sách tất cả Claude Code commands">
+  <main class="min-h-screen">
+    <section class="py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-6xl mx-auto">
+        {/* Back Link */}
+        <a
+          href="/guide/"
+          class="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Quay lại Command Guide
+        </a>
+
+        {/* Header */}
+        <div class="flex items-center gap-4 mb-8">
+          <div class="p-3 rounded-xl bg-blue-400/20 text-blue-300">
+            <Terminal className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-white">Command Browser</h1>
+            <p class="text-white/60">Danh sách đầy đủ tất cả Claude Code commands</p>
+          </div>
+        </div>
+
+        {/* Command Browser */}
+        <CommandBrowserWithSearch client:load />
+      </div>
+    </section>
+  </main>
+</Layout>

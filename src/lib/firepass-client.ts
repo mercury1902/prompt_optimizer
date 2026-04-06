@@ -214,7 +214,7 @@ export async function optimizePrompt(rawPrompt: string): Promise<OptimizeResult>
 
 export async function optimizePromptWithImage(rawPrompt: string, imageBase64: string): Promise<OptimizeResult> {
   const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_VISION_MODEL || import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/routers/kimi-k2p5-turbo";
+  const model = import.meta.env.PUBLIC_FIREPASS_VISION_MODEL || import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/models/kimi-k2p5-turbo";
   const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
 
   const response = await fetch(`${baseUrl}/chat/completions`, {

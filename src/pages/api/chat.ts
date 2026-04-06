@@ -24,11 +24,16 @@ function sseEncode(data: unknown): string {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  console.log("[API /chat] ========== REQUEST START ==========");
   try {
+    console.log("[API /chat] Parsing request body...");
     const body = await request.json();
     const { message, sessionId } = body;
+    console.log("[API /chat] Message:", typeof message === "string" ? message?.slice(0, 50) : `(type: ${typeof message})`);
+    console.log("[API /chat] SessionId:", sessionId || "(new session)");
 
     if (!message || typeof message !== "string") {
+      console.error("[API /chat] ERROR: Message is required");
       return new Response(
         JSON.stringify({ error: "Message is required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -36,6 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const dbAvailable = isDatabaseAvailable();
+    console.log("[API /chat] Database available:", dbAvailable);
     let session: { id: string; title: string } | null = null;
 
     if (dbAvailable && db) {
@@ -136,8 +142,27 @@ export const POST: APIRoute = async ({ request }) => {
           const model = import.meta.env.PUBLIC_FIREPASS_MODEL;
           const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL;
 
+          console.log("[API /chat] Firepass config:");
+          console.log("[API /chat]   - Base URL:", baseUrl);
+          console.log("[API /chat]   - Model:", model);
+          console.log("[API /chat]   - API Key present:", !!apiKey);
+          console.log("[API /chat]   - API Key length:", apiKey?.length);
+
+          if (!apiKey || !baseUrl) {
+            throw new Error("Missing Firepass configuration: API key or base URL not set");
+          }
+
           // Get available tools
           const tools = getToolDefinitions();
+          console.log("[API /chat] Available tools:", tools.length);
+
+          console.log("[API /chat] Calling Firepass API...");
+          console.log("[API /chat] Request body:", JSON.stringify({
+            model,
+            messageCount: conversationContext.length + 1,
+            tools: tools.length,
+            stream: true,
+          }));
 
           const response = await fetch(`${baseUrl}/chat/completions`, {
             method: "POST",
@@ -158,8 +183,14 @@ export const POST: APIRoute = async ({ request }) => {
             }),
           });
 
+          console.log("[API /chat] Firepass response status:", response.status);
+          console.log("[API /chat] Firepass response ok:", response.ok);
+          console.log("[API /chat] Firepass response headers:", Object.fromEntries(response.headers.entries()));
+
           if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            const errorText = await response.text().catch(() => "Unknown error");
+            console.error("[API /chat] Firepass error response:", errorText);
+            throw new Error(`API error: ${response.status} - ${errorText}`);
           }
 
           // Send session ID first
@@ -173,13 +204,18 @@ export const POST: APIRoute = async ({ request }) => {
             throw new Error("No response body");
           }
 
+          console.log("[API /chat] Starting SSE stream...");
+          let chunkCount = 0;
           const decoder = new TextDecoder();
           let buffer = "";
           const accumulatingToolCalls: Map<number, AccumulatingToolCall> = new Map();
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              console.log("[API /chat] Stream complete, chunks received:", chunkCount);
+              break;
+            }
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
@@ -187,9 +223,11 @@ export const POST: APIRoute = async ({ request }) => {
 
             for (const line of lines) {
               if (line.trim() === "" || !line.startsWith("data: ")) continue;
+              chunkCount++;
 
               const data = line.slice(6);
               if (data === "[DONE]") {
+                console.log("[API /chat] Received [DONE] signal");
                 // Convert accumulating tool calls to final ToolCall[]
                 for (const atc of accumulatingToolCalls.values()) {
                   try {
@@ -383,17 +421,22 @@ export const POST: APIRoute = async ({ request }) => {
                 const content = parsed.choices?.[0]?.delta?.content || "";
                 if (content) {
                   fullContent += content;
+                  chunkCount++;
+                  if (chunkCount <= 5 || chunkCount % 50 === 0) {
+                    console.log(`[API /chat] Sending chunk #${chunkCount}:`, content.slice(0, 50));
+                  }
                   controller.enqueue(
                     encoder.encode(sseEncode({ type: "chunk", content }))
                   );
                 }
-              } catch {
-                // Skip invalid JSON
+              } catch (e) {
+                // Skip invalid JSON but log for debugging
+                console.log("[API /chat] JSON parse error:", e, "for data:", data.slice(0, 100));
               }
             }
           }
         } catch (error) {
-          console.error("Streaming error:", error);
+          console.error("[API /chat] STREAMING ERROR:", error);
           controller.enqueue(
             encoder.encode(
               sseEncode({
@@ -407,6 +450,7 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
 
+    console.log("[API /chat] Returning SSE stream response");
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream",
@@ -415,7 +459,7 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
   } catch (error) {
-    console.error("API error:", error);
+    console.error("[API /chat] FATAL ERROR:", error);
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Internal server error",

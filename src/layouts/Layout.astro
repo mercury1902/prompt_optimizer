@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { Toaster } from "sonner";
 ---
 
 <!doctype html>
@@ -8,9 +9,21 @@ import "../styles/global.css";
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>ClaudeKit Prompt Optimizer</title>
+    <title>ClaudeKit Chat</title>
   </head>
   <body class="bg-[#1e1e1e] text-gray-100 min-h-screen">
     <slot />
+    <Toaster
+      position="top-right"
+      richColors
+      toastOptions={{
+        style: {
+          background: "rgba(31, 41, 55, 0.95)",
+          border: "1px solid rgba(75, 85, 99, 0.5)",
+          backdropFilter: "blur(8px)",
+        },
+      }}
+      client:load
+    />
   </body>
 </html>
