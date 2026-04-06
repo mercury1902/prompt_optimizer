@@ -9,6 +9,9 @@ export { TypingIndicator } from './TypingIndicator';
 export { ToolCallVisualizer } from './ToolCallVisualizer';
 export { ToolResultDisplay } from './ToolResultDisplay';
 export { CommandBrowserWithKitFilterAndSearch } from './command-browser-with-kit-filter-and-search';
+export { CommandDetailViewWithTabsAndCopy } from './command-detail-view-with-tabs-and-copy';
+export { CommandUsageExamplesWithVariants } from './command-usage-examples-with-variants';
+export { RelatedCommandsSuggestions, RelatedCommandsCompact } from './related-commands-suggestions';
 
 export type {
   ChatInputProps,
