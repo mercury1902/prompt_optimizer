@@ -12,6 +12,9 @@ export { CommandBrowserWithKitFilterAndSearch } from './command-browser-with-kit
 export { CommandDetailViewWithTabsAndCopy } from './command-detail-view-with-tabs-and-copy';
 export { CommandUsageExamplesWithVariants } from './command-usage-examples-with-variants';
 export { RelatedCommandsSuggestions, RelatedCommandsCompact } from './related-commands-suggestions';
+export { WorkflowBrowserWithSearchAndFilter } from './workflow-browser-with-search-and-filter';
+export { WorkflowCard } from './workflow-card-with-steps-preview';
+export { WorkflowDetailViewWithStepGuide } from './workflow-detail-view-with-step-guide';
 
 export type {
   ChatInputProps,
