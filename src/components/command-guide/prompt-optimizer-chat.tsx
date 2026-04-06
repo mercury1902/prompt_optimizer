@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Copy, Check, RotateCcw, Wand2 } from 'lucide-react';
+import { Send, Sparkles, Copy, Check, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -153,9 +153,16 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
+    <div className="relative rounded-2xl border border-gray-700/50 bg-gray-900/70 backdrop-blur-xl overflow-hidden shadow-2xl">
+      {/* Background effects - matching homepage vibe */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -left-20 w-72 h-72 bg-blue-500/10 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-purple-500/10 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px]" />
+      </div>
+
       {/* Messages */}
-      <div className="h-[500px] overflow-y-auto p-4 space-y-4">
+      <div className="relative h-[500px] overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -182,7 +189,7 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
                 className={`inline-block text-left rounded-2xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-blue-500 text-white rounded-br-sm'
-                    : 'bg-white/10 text-white rounded-bl-sm'
+                    : 'bg-gray-800/50 text-gray-100 rounded-bl-sm border border-gray-700/30'
                 }`}
               >
                 <div className="whitespace-pre-wrap leading-relaxed">
@@ -195,7 +202,7 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
                 <div className="flex items-center gap-2 mt-2 justify-start">
                   <button
                     onClick={() => handleCopy(message.content, message.id)}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all"
                   >
                     {copiedId === message.id ? (
                       <>
@@ -220,11 +227,11 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
-              <div className="flex items-center gap-2 text-white/50">
-                <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce delay-100" />
-                <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce delay-200" />
+            <div className="bg-gray-800/50 border border-gray-700/30 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                <div className="w-2 h-2 bg-blue-400/60 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-purple-400/60 rounded-full animate-bounce delay-100" />
+                <div className="w-2 h-2 bg-indigo-400/60 rounded-full animate-bounce delay-200" />
               </div>
             </div>
           </div>
@@ -233,14 +240,14 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/10 p-4">
+      <div className="relative border-t border-gray-700/50 p-4">
         <div className="flex gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Nhập prompt thô của bạn... (ví dụ: 'làm trang login')"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-brand-400/50 resize-none"
+            className="flex-1 bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
             rows={2}
             disabled={isLoading}
           />
@@ -248,13 +255,13 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
             <button
               onClick={handleSubmit}
               disabled={!input.trim() || isLoading}
-              className="flex items-center justify-center w-12 h-12 rounded-xl bg-brand-400/20 text-brand-300 hover:bg-brand-400/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Send className="w-5 h-5" />
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center justify-center w-12 h-8 rounded-lg bg-white/5 text-white/50 hover:bg-white/10 transition-all"
+              className="flex items-center justify-center w-12 h-8 rounded-lg bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-200 transition-all"
               title="Bắt đầu lại"
             >
               <RotateCcw className="w-4 h-4" />
@@ -264,7 +271,7 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
 
         {/* Quick Prompts */}
         <div className="flex flex-wrap gap-2 mt-3">
-          <span className="text-xs text-white/40">Ví dụ:</span>
+          <span className="text-xs text-gray-500">Ví dụ:</span>
           {[
             'thêm tính năng chat',
             'sửa lỗi typescript',
@@ -274,7 +281,7 @@ Hãy nhập prompt thô của bạn (ví dụ: "làm trang login"), tôi sẽ:
             <button
               key={example}
               onClick={() => setInput(example)}
-              className="text-xs px-2 py-1 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+              className="text-xs px-2 py-1 rounded-full bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-200 transition-all"
             >
               {example}
             </button>

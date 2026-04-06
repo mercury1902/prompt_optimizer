@@ -157,12 +157,23 @@ export const POST: APIRoute = async ({ request }) => {
           console.log("[API /chat] Available tools:", tools.length);
 
           console.log("[API /chat] Calling Firepass API...");
-          console.log("[API /chat] Request body:", JSON.stringify({
+          const requestBody: Record<string, unknown> = {
             model,
-            messageCount: conversationContext.length + 1,
-            tools: tools.length,
+            messages: [
+              ...conversationContext,
+              { role: "user", content: message },
+            ],
             stream: true,
-          }));
+            temperature: 0.7,
+            max_tokens: 4096,
+          };
+          // Only add tools if explicitly enabled and properly formatted
+          if (tools.length > 0) {
+            // TEMPORARILY DISABLE TOOLS - testing if this is the cause of API error
+            // requestBody.tools = tools;
+            console.log("[API /chat] Tools temporarily disabled for testing");
+          }
+          console.log("[API /chat] Full request body:", JSON.stringify(requestBody, null, 2));
 
           const response = await fetch(`${baseUrl}/chat/completions`, {
             method: "POST",
@@ -170,17 +181,7 @@ export const POST: APIRoute = async ({ request }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-              model,
-              messages: [
-                ...conversationContext,
-                { role: "user", content: message },
-              ],
-              tools: tools.length > 0 ? tools : undefined,
-              stream: true,
-              temperature: 0.7,
-              max_tokens: 4096,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           console.log("[API /chat] Firepass response status:", response.status);
