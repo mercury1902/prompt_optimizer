@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ChatContainer } from '../components/ChatContainer';
+---
+
+<Layout title="Chat - ClaudeKit">
+  <div class="h-screen flex flex-col">
+    <ChatContainer client:load apiPath="/api/chat" title="ClaudeKit Chat" />
+  </div>
+</Layout>
+
+<style>
+  /* Ensure full height layout */
+  :global(html, body) {
+    height: 100%;
+    overflow: hidden;
+  }
+</style>
