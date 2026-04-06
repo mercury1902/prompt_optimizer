@@ -1,12 +1,22 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './CodeBlock';
+import { ToolCallVisualizer } from './ToolCallVisualizer';
 import type { MessageContentProps } from '../types/chat';
 
-export function MessageContent({ content }: MessageContentProps) {
+export function MessageContent({ content, tool_calls }: MessageContentProps) {
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none">
-      <ReactMarkdown
+      {tool_calls && tool_calls.length > 0 && (
+        <div className="mb-3 space-y-1">
+          {tool_calls.map((toolExecution) => (
+            <ToolCallVisualizer key={toolExecution.toolCallId} toolExecution={toolExecution} />
+          ))}
+        </div>
+      )}
+
+      {content && (
+        <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className, children, ...props }: any) {
@@ -107,9 +117,10 @@ export function MessageContent({ content }: MessageContentProps) {
             );
           },
         }}
-      >
-        {content}
-      </ReactMarkdown>
+        >
+          {content}
+        </ReactMarkdown>
+      )}
     </div>
   );
 }

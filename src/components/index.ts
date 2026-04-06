@@ -6,6 +6,8 @@ export { AssistantMessage } from './AssistantMessage';
 export { MessageContent } from './MessageContent';
 export { CodeBlock } from './CodeBlock';
 export { TypingIndicator } from './TypingIndicator';
+export { ToolCallVisualizer } from './ToolCallVisualizer';
+export { ToolResultDisplay } from './ToolResultDisplay';
 
 export type {
   ChatInputProps,

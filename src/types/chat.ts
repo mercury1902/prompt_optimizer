@@ -3,6 +3,17 @@ export interface UIMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt: Date;
+  tool_calls?: ToolExecution[];
+}
+
+export interface ToolExecution {
+  toolCallId: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  result?: unknown;
+  error?: string;
+  duration?: number;
 }
 
 export type ChatStatus = 'idle' | 'submitted' | 'streaming' | 'error';
@@ -48,6 +59,7 @@ export interface MessageListProps {
 
 export interface MessageContentProps {
   content: string;
+  tool_calls?: ToolExecution[];
 }
 
 export interface CodeBlockProps {

@@ -1,5 +1,19 @@
 // Schema stub - Phase 4 will implement full Drizzle ORM schema
 
+export interface ToolCallData {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface ToolResultData {
+  toolCallId: string;
+  name: string;
+  result: unknown;
+  error?: string;
+  duration?: number;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -13,6 +27,8 @@ export interface Message {
   role: string;
   content: string;
   createdAt: Date;
+  toolCalls?: ToolCallData[];
+  toolResults?: ToolResultData[];
 }
 
 // Stub table definitions for compatibility

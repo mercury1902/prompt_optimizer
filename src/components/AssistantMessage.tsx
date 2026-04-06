@@ -14,7 +14,7 @@ export function AssistantMessage({
   isStreaming = false,
   isLast = false,
 }: AssistantMessageProps) {
-  const showIndicator = isStreaming && isLast;
+  const showIndicator = isStreaming && isLast && !message.content;
 
   return (
     <div
@@ -30,11 +30,11 @@ export function AssistantMessage({
           Assistant
         </div>
         <div className="text-gray-800 dark:text-gray-200">
-          {message.content ? (
-            <MessageContent content={message.content} />
-          ) : showIndicator ? (
+          {showIndicator ? (
             <TypingIndicator />
-          ) : null}
+          ) : (
+            <MessageContent content={message.content} tool_calls={message.tool_calls} />
+          )}
         </div>
       </div>
     </div>

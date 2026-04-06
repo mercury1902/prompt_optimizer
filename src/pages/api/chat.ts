@@ -3,6 +3,15 @@ import { db, isDatabaseAvailable } from "../../lib/db";
 import { chatSessions, messages } from "../../lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { generateId } from "../../lib/utils";
+import { getToolDefinitions, executeTool } from "../../lib/tools/tool-registry";
+import type { ToolCall, ToolResult } from "../../lib/tools/tool-system-types";
+
+interface ChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -64,10 +73,12 @@ export const POST: APIRoute = async ({ request }) => {
       async start(controller) {
         const assistantMessageId = generateId();
         let fullContent = "";
+        const toolCalls: ToolCall[] = [];
+        const toolResults: ToolResult[] = [];
 
         try {
           // Get conversation history for context (only if DB available)
-          let conversationContext: Array<{ role: string; content: string }> = [];
+          let conversationContext: ChatMessage[] = [];
           if (dbAvailable && db && sessionId) {
             const history = await db.query.messages.findMany({
               where: eq(messages.sessionId, session.id),
@@ -78,15 +89,18 @@ export const POST: APIRoute = async ({ request }) => {
             conversationContext = history
               .reverse()
               .map((m) => ({
-                role: m.role,
+                role: m.role as "user" | "assistant" | "system" | "tool",
                 content: m.content,
               }));
           }
 
-          // Call Firepass API with streaming
+          // Call Firepass API with streaming and tools
           const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
           const model = import.meta.env.PUBLIC_FIREPASS_MODEL;
           const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL;
+
+          // Get available tools
+          const tools = getToolDefinitions();
 
           const response = await fetch(`${baseUrl}/chat/completions`, {
             method: "POST",
@@ -100,6 +114,7 @@ export const POST: APIRoute = async ({ request }) => {
                 ...conversationContext,
                 { role: "user", content: message },
               ],
+              tools: tools.length > 0 ? tools : undefined,
               stream: true,
               temperature: 0.7,
               max_tokens: 4096,
@@ -110,19 +125,22 @@ export const POST: APIRoute = async ({ request }) => {
             throw new Error(`API error: ${response.status}`);
           }
 
+          // Send session ID first
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "session", sessionId: session.id })}
+
+`)
+          );
+
           // Stream the response
           const reader = response.body?.getReader();
           if (!reader) {
             throw new Error("No response body");
           }
 
-          // Send session ID first
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: "session", sessionId: session.id })}\n\n`)
-          );
-
           const decoder = new TextDecoder();
           let buffer = "";
+          let currentToolCall: Partial<ToolCall> | null = null;
 
           while (true) {
             const { done, value } = await reader.read();
@@ -137,6 +155,114 @@ export const POST: APIRoute = async ({ request }) => {
 
               const data = line.slice(6);
               if (data === "[DONE]") {
+                // Handle any pending tool call
+                if (currentToolCall?.id && currentToolCall?.name) {
+                  toolCalls.push(currentToolCall as ToolCall);
+                }
+
+                // If we have tool calls, execute them and get final response
+                if (toolCalls.length > 0) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: "tool_calls", toolCalls })}
+
+`)
+                  );
+
+                  // Execute tools
+                  for (const toolCall of toolCalls) {
+                    const result = await executeTool(toolCall);
+                    toolResults.push(result);
+
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({
+                        type: "tool_result",
+                        toolCallId: toolCall.id,
+                        name: toolCall.name,
+                        result: result.result,
+                        error: result.error,
+                        duration: result.duration,
+                      })}
+
+`)
+                    );
+                  }
+
+                  // Get final response with tool results
+                  const finalResponse = await fetch(`${baseUrl}/chat/completions`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                      model,
+                      messages: [
+                        ...conversationContext,
+                        { role: "user", content: message },
+                        {
+                          role: "assistant",
+                          content: fullContent,
+                          tool_calls: toolCalls.map(tc => ({
+                            id: tc.id,
+                            type: "function",
+                            function: {
+                              name: tc.name,
+                              arguments: JSON.stringify(tc.arguments),
+                            },
+                          })),
+                        },
+                        ...toolResults.map(tr => ({
+                          role: "tool" as const,
+                          tool_call_id: tr.toolCallId,
+                          content: JSON.stringify(tr.error ? { error: tr.error } : tr.result),
+                        })),
+                      ],
+                      stream: true,
+                      temperature: 0.7,
+                      max_tokens: 4096,
+                    }),
+                  });
+
+                  if (finalResponse.ok && finalResponse.body) {
+                    const finalReader = finalResponse.body.getReader();
+                    let finalBuffer = "";
+                    fullContent = ""; // Reset for final content
+
+                    while (true) {
+                      const { done: finalDone, value: finalValue } = await finalReader.read();
+                      if (finalDone) break;
+
+                      finalBuffer += decoder.decode(finalValue, { stream: true });
+                      const finalLines = finalBuffer.split("\n");
+                      finalBuffer = finalLines.pop() || "";
+
+                      for (const finalLine of finalLines) {
+                        if (finalLine.trim() === "" || !finalLine.startsWith("data: ")) continue;
+
+                        const finalData = finalLine.slice(6);
+                        if (finalData === "[DONE]") {
+                          break;
+                        }
+
+                        try {
+                          const finalParsed = JSON.parse(finalData);
+                          const finalContent = finalParsed.choices?.[0]?.delta?.content || "";
+                          if (finalContent) {
+                            fullContent += finalContent;
+                            controller.enqueue(
+                              encoder.encode(`data: ${JSON.stringify({ type: "chunk", content: finalContent })}
+
+`)
+                            );
+                          }
+                        } catch (e) {
+                          // Skip invalid JSON
+                        }
+                      }
+                    }
+                  }
+                }
+
                 // Save complete message to database (if available)
                 if (dbAvailable && db) {
                   await db.insert(messages).values({
@@ -144,12 +270,16 @@ export const POST: APIRoute = async ({ request }) => {
                     sessionId: session.id,
                     role: "assistant",
                     content: fullContent,
+                    toolCalls: toolCalls.length > 0 ? JSON.stringify(toolCalls) : null,
+                    toolResults: toolResults.length > 0 ? JSON.stringify(toolResults) : null,
                     createdAt: new Date(),
                   });
                 }
 
                 controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({ type: "done", messageId: assistantMessageId })}\n\n`)
+                  encoder.encode(`data: ${JSON.stringify({ type: "done", messageId: assistantMessageId, hasToolCalls: toolCalls.length > 0 })}
+
+`)
                 );
                 controller.close();
                 return;
@@ -157,11 +287,46 @@ export const POST: APIRoute = async ({ request }) => {
 
               try {
                 const parsed = JSON.parse(data);
+
+                // Handle tool calls
+                const toolCallsDelta = parsed.choices?.[0]?.delta?.tool_calls;
+                if (toolCallsDelta && Array.isArray(toolCallsDelta)) {
+                  for (const tc of toolCallsDelta) {
+                    if (tc.id) {
+                      // New tool call started
+                      if (currentToolCall?.id) {
+                        toolCalls.push(currentToolCall as ToolCall);
+                      }
+                      currentToolCall = {
+                        id: tc.id,
+                        name: tc.function?.name || "",
+                        arguments: {},
+                      };
+                    }
+                    if (tc.function?.arguments && currentToolCall) {
+                      // Accumulate arguments
+                      try {
+                        const args = JSON.parse(tc.function.arguments);
+                        currentToolCall.arguments = { ...currentToolCall.arguments, ...args };
+                      } catch (e) {
+                        // Partial JSON, store as string to parse later
+                        currentToolCall.arguments = tc.function.arguments;
+                      }
+                    }
+                    if (tc.function?.name && currentToolCall) {
+                      currentToolCall.name = tc.function.name;
+                    }
+                  }
+                }
+
+                // Handle regular content
                 const content = parsed.choices?.[0]?.delta?.content || "";
                 if (content) {
                   fullContent += content;
                   controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: "chunk", content })}\n\n`)
+                    encoder.encode(`data: ${JSON.stringify({ type: "chunk", content })}
+
+`)
                   );
                 }
               } catch (e) {
@@ -176,7 +341,9 @@ export const POST: APIRoute = async ({ request }) => {
               `data: ${JSON.stringify({
                 type: "error",
                 error: error instanceof Error ? error.message : "Unknown error",
-              })}\n\n`
+              })}
+
+`
             )
           );
           controller.close();
