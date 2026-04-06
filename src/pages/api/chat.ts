@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, isDatabaseAvailable } from "../../lib/db";
-import { chatSessions, messages } from "../../lib/db/schema";
+import { chatSessions, messages, type ToolCallData, type ToolResultData } from "../../lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { generateId } from "../../lib/utils";
 import { getToolDefinitions, executeTool } from "../../lib/tools/tool-registry";
@@ -11,6 +11,16 @@ interface ChatMessage {
   content: string;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
+}
+
+interface AccumulatingToolCall {
+  id: string;
+  name: string;
+  argumentsBuffer: string;
+}
+
+function sseEncode(data: unknown): string {
+  return `data: ${JSON.stringify(data)}\n\n`;
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -83,15 +93,42 @@ export const POST: APIRoute = async ({ request }) => {
             const history = await db.query.messages.findMany({
               where: eq(messages.sessionId, session.id),
               orderBy: desc(messages.createdAt),
-              limit: 10,
+              limit: 20,
             });
 
             conversationContext = history
               .reverse()
-              .map((m) => ({
-                role: m.role as "user" | "assistant" | "system" | "tool",
-                content: m.content,
-              }));
+              .flatMap((m): ChatMessage[] => {
+                // Build message with optional tool_calls
+                const msg: ChatMessage = {
+                  role: m.role as "user" | "assistant" | "system" | "tool",
+                  content: m.content,
+                };
+
+                // Add tool_calls if present
+                if (m.toolCalls && m.toolCalls.length > 0) {
+                  msg.tool_calls = m.toolCalls.map(tc => ({
+                    id: tc.id,
+                    name: tc.name,
+                    arguments: tc.arguments,
+                  }));
+                }
+
+                const msgs: ChatMessage[] = [msg];
+
+                // Add tool results as tool messages
+                if (m.toolResults && m.toolResults.length > 0) {
+                  for (const tr of m.toolResults) {
+                    msgs.push({
+                      role: "tool",
+                      tool_call_id: tr.toolCallId,
+                      content: JSON.stringify(tr.error ? { error: tr.error } : tr.result),
+                    });
+                  }
+                }
+
+                return msgs;
+              });
           }
 
           // Call Firepass API with streaming and tools
@@ -127,9 +164,7 @@ export const POST: APIRoute = async ({ request }) => {
 
           // Send session ID first
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: "session", sessionId: session.id })}
-
-`)
+            encoder.encode(sseEncode({ type: "session", sessionId: session.id }))
           );
 
           // Stream the response
@@ -140,7 +175,7 @@ export const POST: APIRoute = async ({ request }) => {
 
           const decoder = new TextDecoder();
           let buffer = "";
-          let currentToolCall: Partial<ToolCall> | null = null;
+          const accumulatingToolCalls: Map<number, AccumulatingToolCall> = new Map();
 
           while (true) {
             const { done, value } = await reader.read();
@@ -155,17 +190,30 @@ export const POST: APIRoute = async ({ request }) => {
 
               const data = line.slice(6);
               if (data === "[DONE]") {
-                // Handle any pending tool call
-                if (currentToolCall?.id && currentToolCall?.name) {
-                  toolCalls.push(currentToolCall as ToolCall);
+                // Convert accumulating tool calls to final ToolCall[]
+                for (const atc of accumulatingToolCalls.values()) {
+                  try {
+                    const args = atc.argumentsBuffer ? JSON.parse(atc.argumentsBuffer) : {};
+                    toolCalls.push({
+                      id: atc.id,
+                      name: atc.name,
+                      arguments: args,
+                    });
+                  } catch {
+                    // If JSON parse fails, store as-is
+                    toolCalls.push({
+                      id: atc.id,
+                      name: atc.name,
+                      arguments: { _raw: atc.argumentsBuffer },
+                    });
+                  }
                 }
+                accumulatingToolCalls.clear();
 
                 // If we have tool calls, execute them and get final response
                 if (toolCalls.length > 0) {
                   controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: "tool_calls", toolCalls })}
-
-`)
+                    encoder.encode(sseEncode({ type: "tool_calls", toolCalls }))
                   );
 
                   // Execute tools
@@ -174,16 +222,14 @@ export const POST: APIRoute = async ({ request }) => {
                     toolResults.push(result);
 
                     controller.enqueue(
-                      encoder.encode(`data: ${JSON.stringify({
+                      encoder.encode(sseEncode({
                         type: "tool_result",
                         toolCallId: toolCall.id,
                         name: toolCall.name,
                         result: result.result,
                         error: result.error,
                         duration: result.duration,
-                      })}
-
-`)
+                      }))
                     );
                   }
 
@@ -214,6 +260,7 @@ export const POST: APIRoute = async ({ request }) => {
                         ...toolResults.map(tr => ({
                           role: "tool" as const,
                           tool_call_id: tr.toolCallId,
+                          name: tr.name,
                           content: JSON.stringify(tr.error ? { error: tr.error } : tr.result),
                         })),
                       ],
@@ -240,22 +287,18 @@ export const POST: APIRoute = async ({ request }) => {
                         if (finalLine.trim() === "" || !finalLine.startsWith("data: ")) continue;
 
                         const finalData = finalLine.slice(6);
-                        if (finalData === "[DONE]") {
-                          break;
-                        }
+                        if (finalData === "[DONE]") continue;
 
                         try {
                           const finalParsed = JSON.parse(finalData);
-                          const finalContent = finalParsed.choices?.[0]?.delta?.content || "";
-                          if (finalContent) {
-                            fullContent += finalContent;
+                          const finalContentDelta = finalParsed.choices?.[0]?.delta?.content || "";
+                          if (finalContentDelta) {
+                            fullContent += finalContentDelta;
                             controller.enqueue(
-                              encoder.encode(`data: ${JSON.stringify({ type: "chunk", content: finalContent })}
-
-`)
+                              encoder.encode(sseEncode({ type: "chunk", content: finalContentDelta }))
                             );
                           }
-                        } catch (e) {
+                        } catch {
                           // Skip invalid JSON
                         }
                       }
@@ -265,21 +308,41 @@ export const POST: APIRoute = async ({ request }) => {
 
                 // Save complete message to database (if available)
                 if (dbAvailable && db) {
+                  const toolCallData: ToolCallData[] | undefined = toolCalls.length > 0
+                    ? toolCalls.map(tc => ({
+                        id: tc.id,
+                        name: tc.name,
+                        arguments: tc.arguments,
+                      }))
+                    : undefined;
+
+                  const toolResultData: ToolResultData[] | undefined = toolResults.length > 0
+                    ? toolResults.map(tr => ({
+                        toolCallId: tr.toolCallId,
+                        name: tr.name,
+                        result: tr.result,
+                        error: tr.error,
+                        duration: tr.duration,
+                      }))
+                    : undefined;
+
                   await db.insert(messages).values({
                     id: assistantMessageId,
                     sessionId: session.id,
                     role: "assistant",
                     content: fullContent,
-                    toolCalls: toolCalls.length > 0 ? JSON.stringify(toolCalls) : null,
-                    toolResults: toolResults.length > 0 ? JSON.stringify(toolResults) : null,
+                    toolCalls: toolCallData,
+                    toolResults: toolResultData,
                     createdAt: new Date(),
                   });
                 }
 
                 controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({ type: "done", messageId: assistantMessageId, hasToolCalls: toolCalls.length > 0 })}
-
-`)
+                  encoder.encode(sseEncode({
+                    type: "done",
+                    messageId: assistantMessageId,
+                    hasToolCalls: toolCalls.length > 0,
+                  }))
                 );
                 controller.close();
                 return;
@@ -288,33 +351,30 @@ export const POST: APIRoute = async ({ request }) => {
               try {
                 const parsed = JSON.parse(data);
 
-                // Handle tool calls
+                // Handle tool calls from delta
                 const toolCallsDelta = parsed.choices?.[0]?.delta?.tool_calls;
                 if (toolCallsDelta && Array.isArray(toolCallsDelta)) {
                   for (const tc of toolCallsDelta) {
-                    if (tc.id) {
-                      // New tool call started
-                      if (currentToolCall?.id) {
-                        toolCalls.push(currentToolCall as ToolCall);
-                      }
-                      currentToolCall = {
-                        id: tc.id,
+                    const index = tc.index ?? 0;
+
+                    if (!accumulatingToolCalls.has(index)) {
+                      accumulatingToolCalls.set(index, {
+                        id: tc.id || `call_${generateId()}`,
                         name: tc.function?.name || "",
-                        arguments: {},
-                      };
+                        argumentsBuffer: "",
+                      });
                     }
-                    if (tc.function?.arguments && currentToolCall) {
-                      // Accumulate arguments
-                      try {
-                        const args = JSON.parse(tc.function.arguments);
-                        currentToolCall.arguments = { ...currentToolCall.arguments, ...args };
-                      } catch (e) {
-                        // Partial JSON, store as string to parse later
-                        currentToolCall.arguments = tc.function.arguments;
-                      }
+
+                    const atc = accumulatingToolCalls.get(index)!;
+
+                    if (tc.id) {
+                      atc.id = tc.id;
                     }
-                    if (tc.function?.name && currentToolCall) {
-                      currentToolCall.name = tc.function.name;
+                    if (tc.function?.name) {
+                      atc.name = tc.function.name;
+                    }
+                    if (tc.function?.arguments) {
+                      atc.argumentsBuffer += tc.function.arguments;
                     }
                   }
                 }
@@ -324,12 +384,10 @@ export const POST: APIRoute = async ({ request }) => {
                 if (content) {
                   fullContent += content;
                   controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: "chunk", content })}
-
-`)
+                    encoder.encode(sseEncode({ type: "chunk", content }))
                   );
                 }
-              } catch (e) {
+              } catch {
                 // Skip invalid JSON
               }
             }
@@ -338,12 +396,10 @@ export const POST: APIRoute = async ({ request }) => {
           console.error("Streaming error:", error);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({
+              sseEncode({
                 type: "error",
                 error: error instanceof Error ? error.message : "Unknown error",
-              })}
-
-`
+              })
             )
           );
           controller.close();

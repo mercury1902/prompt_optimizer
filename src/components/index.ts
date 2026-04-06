@@ -8,6 +8,7 @@ export { CodeBlock } from './CodeBlock';
 export { TypingIndicator } from './TypingIndicator';
 export { ToolCallVisualizer } from './ToolCallVisualizer';
 export { ToolResultDisplay } from './ToolResultDisplay';
+export { CommandBrowserWithKitFilterAndSearch } from './command-browser-with-kit-filter-and-search';
 
 export type {
   ChatInputProps,
