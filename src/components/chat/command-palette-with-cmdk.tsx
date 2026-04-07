@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Command } from 'cmdk';
-import { Search, ChevronRight, Wrench, Megaphone, Zap } from 'lucide-react';
+import { Search, ChevronRight, Wrench, Megaphone } from 'lucide-react';
+import { engineerCommands, marketingCommands } from '../../data/commands';
 
 interface CommandItem {
   id: string;
@@ -9,15 +10,6 @@ interface CommandItem {
   complexity: number;
   description: string;
 }
-
-const demoCommands: CommandItem[] = [
-  { id: 'ck:cook', name: '/ck:cook', category: 'Engineer', complexity: 2, description: 'Triển khai tính năng thông minh với workflow tự động' },
-  { id: 'ck:plan', name: '/ck:plan', category: 'Engineer', complexity: 3, description: 'Tạo kế hoạch triển khai với các phase' },
-  { id: 'ck:code', name: '/ck:code', category: 'Engineer', complexity: 2, description: 'Tạo và xem xét code' },
-  { id: 'ck:debug', name: '/ck:debug', category: 'Engineer', complexity: 3, description: 'Gỡ lỗi và sửa chữa' },
-  { id: 'ck:ask', name: '/ck:ask', category: 'Marketing', complexity: 1, description: 'Đặt câu hỏi về marketing' },
-  { id: 'ck:analyze', name: '/ck:analyze', category: 'Marketing', complexity: 2, description: 'Phân tích chiến dịch và chỉ số' },
-];
 
 const IconBolt = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -47,8 +39,9 @@ interface CommandPaletteProps {
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChange, onSelect }) => {
   const [search, setSearch] = useState('');
 
-  const engineerCmds = demoCommands.filter(c => c.category === 'Engineer');
-  const marketingCmds = demoCommands.filter(c => c.category === 'Marketing');
+  const engineerCmds = engineerCommands.slice(0, 8);
+  const marketingCmds = marketingCommands.slice(0, 8);
+  const totalCommands = engineerCommands.length + marketingCommands.length;
 
   return (
     <Command.Dialog
@@ -131,7 +124,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
             <span className="flex items-center gap-1"><kbd className="px-1 bg-gray-700 rounded">↑↓</kbd> để di chuyển</span>
             <span className="flex items-center gap-1"><kbd className="px-1 bg-gray-700 rounded">↵</kbd> để chọn</span>
           </div>
-          <span>{demoCommands.length} lệnh có sẵn</span>
+          <span>{totalCommands} lệnh có sẵn</span>
         </div>
       </div>
     </Command.Dialog>

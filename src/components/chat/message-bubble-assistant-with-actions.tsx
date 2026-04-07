@@ -33,16 +33,23 @@ export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ 
           <div className="bg-gray-800/80 backdrop-blur-md border border-gray-700/50 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[90%]">
             <div className="text-gray-200 leading-relaxed whitespace-pre-wrap">{content}</div>
           </div>
-          <div className="absolute -top-2 right-0 opacity-0 group-hover/message:opacity-100 transition-all duration-200 translate-y-1 group-hover/message:translate-y-0">
-            <div className="flex items-center gap-1 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-xl p-1">
+          {/* Actions - MOBILE: below, DESKTOP: overlay */}
+          <div className="
+            flex items-center gap-1 mt-2
+            md:mt-0 md:absolute md:-top-2 md:right-0
+            opacity-100 md:opacity-0
+            md:group-hover/message:opacity-100
+            transition-opacity duration-200
+          ">
+            <div className="flex items-center gap-1 bg-gray-800/95 md:backdrop-blur-md md:border md:border-gray-700/50 md:rounded-lg md:shadow-xl p-1">
               <button
                 onClick={handleCopy}
-                className="p-1.5 hover:bg-gray-700/50 rounded-md transition-colors"
+                className="p-2 md:p-1.5 hover:bg-gray-700/50 rounded-md transition-colors"
                 title="Sao chép tin nhắn"
               >
                 {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
               </button>
-              <button className="p-1.5 hover:bg-gray-700/50 rounded-md transition-colors" title="Tạo lại">
+              <button className="p-2 md:p-1.5 hover:bg-gray-700/50 rounded-md transition-colors" title="Tạo lại">
                 <RefreshCw className="w-4 h-4 text-gray-400" />
               </button>
             </div>

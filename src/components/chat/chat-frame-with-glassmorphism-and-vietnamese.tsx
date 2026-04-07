@@ -1,9 +1,10 @@
 // Refactored ChatFrame - Modular Architecture
 // Break down from 656 lines to <200 lines by extracting components
 // Components extracted: MessageBubbleUser, MessageBubbleAssistant, CommandPalette, ChatInput, ChatHeader
-// Version: 2026-04-07-003
+// Added: ErrorBannerWithRetry, ScrollToBottomButton, HistoryPanelWireframe, useScrollPosition hook
+// Version: 2026-04-07-004
 
-const BUILD_VERSION = '2026-04-07-003';
+const BUILD_VERSION = '2026-04-07-004';
 console.log('[Chat] Build version:', BUILD_VERSION);
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -14,6 +15,11 @@ import { CommandPalette } from './command-palette-with-cmdk';
 import { ChatInput } from './chat-input-with-keyboard-shortcuts';
 import { ChatHeader } from './chat-header-with-status';
 import { CodeBlockWithCopy } from './code-block-with-copy-button';
+import { ErrorBannerWithRetry } from './error-banner-with-retry';
+import { ScrollToBottomButton } from './scroll-to-bottom-button';
+import { HistoryPanelWireframe } from './history-panel-wireframe';
+import { useScrollPosition } from '../../hooks/useScrollPosition';
+import { EmptyStateWithSuggestions } from './empty-state-with-suggestions';
 
 interface Message {
   id: string;
@@ -29,7 +35,12 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'network' | 'server' | 'unknown'>('unknown');
+  const [isRetrying, setIsRetrying] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { isNearBottom } = useScrollPosition(messagesContainerRef, 150);
 
   useEffect(() => {
     console.log('[Chat] Build version:', BUILD_VERSION);
@@ -45,14 +56,18 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
     }
   };
 
+  // Auto-scroll only when near bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isNearBottom]);
 
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
 
-    setErrorMessage(null); // Clear error on new message
+    setErrorMessage(null);
+    setErrorType('unknown');
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -71,7 +86,9 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
         body: JSON.stringify({ message: input, sessionId: null }),
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -116,12 +133,43 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
       }
     } catch (error) {
       console.error('[Chat] Error:', error);
-      const errorMsg = 'Lỗi kết nối: ' + (error instanceof Error ? error.message : 'Unknown');
-      setErrorMessage(errorMsg);
-      toast.error(errorMsg);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const isNetworkError = errorMsg.includes('fetch') || errorMsg.includes('network');
+      setErrorType(isNetworkError ? 'network' : 'server');
+      setErrorMessage(`Lỗi kết nối: ${errorMsg}`);
+      toast.error(`Lỗi: ${errorMsg}`);
     } finally {
       setIsStreaming(false);
     }
+  };
+
+  const handleRetry = async () => {
+    if (!errorMessage || isRetrying) return;
+
+    setIsRetrying(true);
+    await checkApiHealth();
+
+    // Retry the last user message if available
+    const lastUserMessage = messages.findLast((m) => m.role === 'user');
+    if (lastUserMessage) {
+      setInput(lastUserMessage.content);
+      // Remove the failed assistant message if exists
+      setMessages((prev) => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.role === 'assistant' && lastMsg.content === '') {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
+      setTimeout(() => handleSend(), 100);
+    }
+
+    setIsRetrying(false);
+  };
+
+  const handleDismissError = () => {
+    setErrorMessage(null);
+    setErrorType('unknown');
   };
 
   const handleCommandSelect = (command: string) => {
@@ -136,7 +184,12 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
 
   const handleClear = () => {
     setMessages([]);
+    setErrorMessage(null);
     toast.info('Đã xóa cuộc trò chuyện');
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -149,7 +202,7 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
       </div>
 
       <div className="relative h-full flex justify-center p-4">
-        <div className="w-full max-w-4xl flex flex-col bg-gray-900/70 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-4xl flex flex-col bg-gray-900/70 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden relative">
           <ChatHeader
             apiStatus={apiStatus}
             onRefresh={() => { localStorage.clear(); window.location.reload(); }}
@@ -158,21 +211,29 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
             showHistory={showHistory}
           />
 
-          <div className="flex-1 flex overflow-hidden">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 flex overflow-hidden relative">
+            {/* Messages Container */}
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto relative"
+            >
               {errorMessage && (
-                <div data-testid="error-message" className="p-4 bg-red-900/30 border-b border-red-700/50">
-                  <p className="text-red-400 text-sm">{errorMessage}</p>
-                </div>
+                <ErrorBannerWithRetry
+                  message={errorMessage}
+                  type={errorType}
+                  onRetry={handleRetry}
+                  onDismiss={handleDismissError}
+                  isRetrying={isRetrying}
+                />
               )}
               {messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  <div className="text-center">
-                    <p className="mb-2">Bắt đầu cuộc trò chuyện mới</p>
-                    <p className="text-sm text-gray-600">Nhập / để xem danh sách lệnh</p>
-                  </div>
-                </div>
+                <EmptyStateWithSuggestions
+                  onSuggestionClick={(text) => {
+                    setInput(text);
+                    if (text === '/') setCommandOpen(true);
+                  }}
+                  onCommandPaletteOpen={() => setCommandOpen(true)}
+                />
               ) : (
                 <div className="divide-y divide-gray-800/50">
                   {messages.map((message) => (
@@ -187,7 +248,23 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
                   <div ref={messagesEndRef} />
                 </div>
               )}
+
+              {/* Scroll to bottom button */}
+              <ScrollToBottomButton
+                onClick={scrollToBottom}
+                isVisible={!isNearBottom && messages.length > 0}
+              />
             </div>
+
+            {/* History Panel */}
+            <HistoryPanelWireframe
+              isOpen={showHistory}
+              onClose={() => setShowHistory(false)}
+              onNewChat={() => {
+                handleClear();
+                setShowHistory(false);
+              }}
+            />
           </div>
 
           <ChatInput

@@ -1,18 +1,10 @@
 ---
+// DEPRECATED: This page is maintained for backward compatibility.
+// The new glassmorphism experience is at /
 import Layout from '../layouts/Layout.astro';
-import { ChatContainer } from '../components/ChatContainer';
+import ChatFrameWithGlassmorphismAndVietnamese from '../components/chat/chat-frame-with-glassmorphism-and-vietnamese';
 ---
 
 <Layout title="Chat - ClaudeKit">
-  <div class="h-screen flex flex-col">
-    <ChatContainer client:load apiPath="/api/chat" title="ClaudeKit Chat" />
-  </div>
+  <ChatFrameWithGlassmorphismAndVietnamese client:load />
 </Layout>
-
-<style>
-  /* Ensure full height layout */
-  :global(html, body) {
-    height: 100%;
-    overflow: hidden;
-  }
-</style>

@@ -4,6 +4,10 @@ export { CommandPalette } from './command-palette-with-cmdk';
 export { ChatInput } from './chat-input-with-keyboard-shortcuts';
 export { ChatHeader } from './chat-header-with-status';
 export { CodeBlockWithCopy } from './code-block-with-copy-button';
+export { EmptyStateWithSuggestions } from './empty-state-with-suggestions';
+export { ErrorBannerWithRetry } from './error-banner-with-retry';
+export { ScrollToBottomButton } from './scroll-to-bottom-button';
+export { HistoryPanelWireframe } from './history-panel-wireframe';
 
 // Re-export ChatFrame and alias for backward compatibility
 export { default as ChatFrameWithGlassmorphismAndVietnamese } from './chat-frame-with-glassmorphism-and-vietnamese';
