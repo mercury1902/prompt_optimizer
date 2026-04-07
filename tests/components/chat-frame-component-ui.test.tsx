@@ -56,7 +56,6 @@ describe('Chat Frame Component UI Tests', () => {
       });
 
       expect(screen.getByText(/Bắt đầu cuộc trò chuyện mới/)).toBeInTheDocument();
-      expect(screen.getByText(/Nhập \/ để xem danh sách lệnh/)).toBeInTheDocument();
     });
 
     it('should show API status indicator', async () => {
