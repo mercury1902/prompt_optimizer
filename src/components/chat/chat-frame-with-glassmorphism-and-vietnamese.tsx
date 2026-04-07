@@ -239,9 +239,9 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
                   {messages.map((message) => (
                     <div key={message.id}>
                       {message.role === 'user' ? (
-                        <MessageBubbleUser content={message.content} />
+                        <MessageBubbleUser content={message.content} messageId={message.id} />
                       ) : (
-                        <MessageBubbleAssistant content={message.content} />
+                        <MessageBubbleAssistant content={message.content} messageId={message.id} />
                       )}
                     </div>
                   ))}

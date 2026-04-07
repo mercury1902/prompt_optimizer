@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { Bot, Copy, Check, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { MessageReactionsContainer } from './message-reactions-container';
 
 interface MessageBubbleAssistantProps {
   content: string;
+  messageId?: string;
 }
 
-export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ content }) => {
+export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ content, messageId }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    toast.success('Đã sao chép vào clipboard', {
-      icon: <Check className="w-4 h-4 text-green-400" />,
-    });
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success('Đã sao chép vào clipboard', {
+        icon: <Check className="w-4 h-4 text-green-400" />,
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Không thể sao chép. Vui lòng thử lại.');
+    }
   };
 
   return (
@@ -55,6 +61,7 @@ export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ 
             </div>
           </div>
         </div>
+        {messageId && <MessageReactionsContainer messageId={messageId} />}
       </div>
     </div>
   );

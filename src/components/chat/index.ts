@@ -8,6 +8,9 @@ export { EmptyStateWithSuggestions } from './empty-state-with-suggestions';
 export { ErrorBannerWithRetry } from './error-banner-with-retry';
 export { ScrollToBottomButton } from './scroll-to-bottom-button';
 export { HistoryPanelWireframe } from './history-panel-wireframe';
+export { MessageReactionButton } from './message-reaction-button';
+export { MessageReactionsContainer } from './message-reactions-container';
+export { VerticalNavSidebar } from './vertical-navigation-sidebar';
 
 // Re-export ChatFrame and alias for backward compatibility
 export { default as ChatFrameWithGlassmorphismAndVietnamese } from './chat-frame-with-glassmorphism-and-vietnamese';
