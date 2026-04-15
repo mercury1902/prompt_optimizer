@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy neutral-theme message bubble.
+ * Fully deprecated in favor of `chat/message-bubble-user-simple`.
+ */
+
 import { User } from 'lucide-react';
 import { MessageContent } from './MessageContent';
 import type { UIMessage } from '../types/chat';

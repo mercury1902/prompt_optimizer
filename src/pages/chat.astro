@@ -1,10 +1,15 @@
 ---
-// DEPRECATED: This page is maintained for backward compatibility.
-// The new glassmorphism experience is at /
 import Layout from '../layouts/Layout.astro';
 import ChatFrameWithGlassmorphismAndVietnamese from '../components/chat/chat-frame-with-glassmorphism-and-vietnamese';
+import { VerticalNavSidebar } from '../components/chat/vertical-navigation-sidebar';
 ---
 
-<Layout title="Chat - ClaudeKit">
-  <ChatFrameWithGlassmorphismAndVietnamese client:load />
+<Layout title="ClaudeKit Chat">
+  <div class="app-shell bg-[var(--app-bg)]">
+    <VerticalNavSidebar currentPage="chat" client:load />
+
+    <main class="app-shell-main app-shell-main-clip relative z-10 flex flex-col">
+      <ChatFrameWithGlassmorphismAndVietnamese client:load />
+    </main>
+  </div>
 </Layout>

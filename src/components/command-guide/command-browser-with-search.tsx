@@ -38,12 +38,12 @@ const CommandCard: React.FC<CommandCardProps> = ({ command, onClick, isFeatured 
             <code className="text-sm font-mono text-brand-300 font-semibold">
               {command.name}
             </code>
-            {isFeatured && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+            {isFeatured && <Star className="w-4 h-4 text-brand-300 fill-brand-300" />}
           </div>
           <p className="text-sm text-white/80 line-clamp-2">{command.description}</p>
           <div className="flex items-center gap-2 mt-2 text-xs">
             <span className="text-white/50">{command.category}</span>
-            <span className="text-yellow-400/80" title={`Complexity: ${command.complexity}/5`}>
+            <span className="text-brand-300/80" title={`Complexity: ${command.complexity}/5`}>
               {complexityDots}
             </span>
           </div>

@@ -1,185 +1,164 @@
 @import "tailwindcss";
 
-/* ============================================
-   Glassmorphism 2.0 - Premium Design System
-   ============================================ */
-
 :root {
-  /* Glass Depth Layers */
-  --glass-depth-1: rgba(255, 255, 255, 0.03);
-  --glass-depth-2: rgba(255, 255, 255, 0.06);
-  --glass-depth-3: rgba(255, 255, 255, 0.10);
-  --glass-depth-4: rgba(255, 255, 255, 0.15);
-  --glass-depth-5: rgba(255, 255, 255, 0.20);
-
-  /* Border Opacity */
-  --glass-border-1: rgba(255, 255, 255, 0.05);
-  --glass-border-2: rgba(255, 255, 255, 0.10);
-  --glass-border-3: rgba(255, 255, 255, 0.15);
-  --glass-border-4: rgba(255, 255, 255, 0.25);
-
-  /* Blur Levels */
-  --blur-xs: blur(4px);
-  --blur-sm: blur(8px);
-  --blur-md: blur(16px);
-  --blur-lg: blur(24px);
-  --blur-xl: blur(40px);
-
-  /* Brand Colors */
-  --brand-50: #fef3e2;
-  --brand-100: #fde5bf;
-  --brand-200: #fbc959;
-  --brand-300: #f5a623;
-  --brand-400: #e08e1a;
-  --brand-500: #c77812;
-
-  /* Gradient Definitions */
-  --gradient-mesh-1: radial-gradient(ellipse at top, rgba(245, 166, 35, 0.15), transparent 50%),
-                     radial-gradient(ellipse at bottom right, rgba(147, 51, 234, 0.1), transparent 50%),
-                     radial-gradient(ellipse at bottom left, rgba(59, 130, 246, 0.1), transparent 50%);
-
-  --gradient-border: linear-gradient(135deg, rgba(245, 166, 35, 0.5), rgba(147, 51, 234, 0.3), rgba(59, 130, 246, 0.5));
-
-  /* Animation Durations */
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --duration-slow: 500ms;
+  color-scheme: light dark;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Geist", "Helvetica Neue", Arial, sans-serif;
+  --app-bg: #fafafa;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f7f7f8;
+  --app-border: #e5e5e5;
+  --app-border-strong: #d1d5db;
+  --app-text: #111827;
+  --app-text-muted: #6b7280;
+  --app-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+  --app-shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.05);
+  --focus-ring: rgba(37, 99, 235, 0.45);
+  --accent: #2563eb;
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #3b82f6;
+  --brand-500: #2563eb;
 }
 
-/* ============================================
-   Glass Card Component Classes
-   ============================================ */
-
-.glass-card {
-  background: var(--glass-depth-2);
-  backdrop-filter: var(--blur-md);
-  border: 1px solid var(--glass-border-2);
-  border-radius: 16px;
-  transition: all var(--duration-normal) ease-out;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #0d0d0d;
+    --app-surface: #171717;
+    --app-surface-muted: #1f1f1f;
+    --app-border: #2a2a2a;
+    --app-border-strong: #3a3a3a;
+    --app-text: #f3f4f6;
+    --app-text-muted: #9ca3af;
+    --app-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    --app-shadow-soft: 0 16px 36px rgba(0, 0, 0, 0.24);
+    --focus-ring: rgba(96, 165, 250, 0.5);
+    --accent: #60a5fa;
+  }
 }
 
-.glass-card:hover {
-  background: var(--glass-depth-3);
-  border-color: var(--glass-border-3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-sans);
+  background: var(--app-bg);
 }
 
-.glass-card-depth-1 { background: var(--glass-depth-1); backdrop-filter: var(--blur-sm); }
-.glass-card-depth-2 { background: var(--glass-depth-2); backdrop-filter: var(--blur-md); }
-.glass-card-depth-3 { background: var(--glass-depth-3); backdrop-filter: var(--blur-lg); }
-.glass-card-depth-4 { background: var(--glass-depth-4); backdrop-filter: var(--blur-xl); }
-
-/* ============================================
-   Animated Border Gradient
-   ============================================ */
-
-.animated-border {
-  position: relative;
-  border-radius: 16px;
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.07), transparent 40%), var(--app-bg);
+  color: var(--app-text);
 }
 
-.animated-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  padding: 1px;
-  background: var(--gradient-border);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: borderRotate 4s linear infinite;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
-@keyframes borderRotate {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
+[id] {
+  scroll-margin-top: 1rem;
 }
 
-/* ============================================
-   Mesh Gradient Background
-   ============================================ */
-
-.mesh-gradient {
-  background: var(--gradient-mesh-1);
-  background-size: 200% 200%;
-  animation: meshMove 20s ease infinite;
+.app-shell {
+  display: grid;
+  grid-template-columns: 18.75rem minmax(0, 1fr);
+  min-height: 100dvh;
+  align-items: stretch;
 }
 
-@keyframes meshMove {
-  0%, 100% { background-position: 0% 0%; }
-  25% { background-position: 100% 0%; }
-  50% { background-position: 100% 100%; }
-  75% { background-position: 0% 100%; }
+.app-shell-main {
+  min-width: 0;
+  min-height: 100dvh;
 }
 
-/* ============================================
-   Neumorphic-Glass Buttons
-   ============================================ */
-
-.glass-button {
-  background: var(--glass-depth-3);
-  backdrop-filter: var(--blur-sm);
-  border: 1px solid var(--glass-border-2);
-  border-radius: 12px;
-  color: white;
-  font-weight: 500;
-  transition: all var(--duration-fast) ease-out;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.app-shell-main-scroll {
+  overflow: auto;
 }
 
-.glass-button:hover {
-  background: var(--glass-depth-4);
-  border-color: var(--glass-border-3);
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+.app-shell-main-clip {
+  overflow: hidden;
 }
 
-.glass-button:active {
-  transform: translateY(0);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
 }
 
-.glass-button-primary {
-  background: linear-gradient(135deg, rgba(245, 166, 35, 0.2), rgba(245, 166, 35, 0.1));
-  border-color: rgba(245, 166, 35, 0.3);
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.glass-button-primary:hover {
-  background: linear-gradient(135deg, rgba(245, 166, 35, 0.3), rgba(245, 166, 35, 0.2));
-  border-color: rgba(245, 166, 35, 0.5);
+@keyframes messageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* ============================================
-   Glow Effects
-   ============================================ */
-
-.glow-brand {
-  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+@keyframes typingDot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.78);
+    opacity: 0.45;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.glow-brand-subtle {
-  box-shadow: 0 0 40px rgba(245, 166, 35, 0.1);
+@keyframes optimizerSkeletonShimmer {
+  0% {
+    background-position: 220% 0;
+  }
+  100% {
+    background-position: -220% 0;
+  }
 }
 
-.pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
+.message-enter {
+  animation: messageEnter 240ms ease-out both;
 }
 
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(245, 166, 35, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(245, 166, 35, 0.4); }
+.typing-dot {
+  animation: typingDot 1.2s ease-in-out infinite;
 }
 
-/* ============================================
-   Scrollbar Styling
-   ============================================ */
+.safe-bottom-pad {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.optimizer-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.24) 0%,
+    rgba(203, 213, 225, 0.38) 50%,
+    rgba(148, 163, 184, 0.24) 100%
+  );
+  background-size: 220% 100%;
+  animation: optimizerSkeletonShimmer 1.3s linear infinite;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.22);
+  color: inherit;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -187,55 +166,31 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.36);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(100, 116, 139, 0.52);
 }
 
-/* ============================================
-   Selection Styling
-   ============================================ */
-
-::selection {
-  background: rgba(245, 166, 35, 0.3);
-  color: white;
+html[lang='vi'] [data-i18n='en'] {
+  display: none !important;
 }
 
-/* ============================================
-   Focus States
-   ============================================ */
-
-.glass-focus:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.3);
+html[lang='en'] [data-i18n='vi'] {
+  display: none !important;
 }
-
-/* ============================================
-   Utility Classes
-   ============================================ */
-
-.text-gradient {
-  background: linear-gradient(135deg, #f5a623, #9333ea);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ============================================
-   Toast Notification Styling
-   ============================================ */
 
 [data-sonner-toast] {
-  background: rgba(31, 41, 55, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(75, 85, 99, 0.5) !important;
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent) !important;
+  color: var(--app-text) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--app-border) !important;
   border-radius: 12px !important;
+  box-shadow: var(--app-shadow-soft) !important;
 }

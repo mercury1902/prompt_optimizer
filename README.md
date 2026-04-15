@@ -21,8 +21,13 @@ AI-powered chatbot with prompt optimization, 62 ClaudeKit commands, and 18 prede
 ### Core Chat
 - **SSE Streaming**: Real-time AI responses with session persistence
 - **Glassmorphism UI**: Premium glassmorphism design with Framer Motion animations
+- **Bilingual Toggle**: Vietnamese/English UI switching with persisted preference
 - **Session Management**: Chat history with SQLite/PostgreSQL storage
 - **Favorites & Recent**: localStorage-backed command tracking
+
+### UI Consistency
+- **Global Accent Policy**: Single brand-accent system across primary surfaces
+- **Legacy UI Deprecation**: Neutral fallback chat components are fully deprecated
 
 ### Command System (62 Commands)
 | Kit | Count | Examples |
@@ -180,6 +185,8 @@ npm run preview
 | build | `astro build` | Production build |
 | preview | `astro preview` | Preview build |
 | test | `vitest run` | Run tests |
+| benchmark | `npm run benchmark` | Offline benchmark suite (discovery + telemetry learning) |
+| benchmark:live | `npm run benchmark:live` | Live FirePass benchmark (requires `RUN_LIVE_BENCHMARK=1`) |
 | test:watch | `vitest` | Watch mode |
 | test:coverage | `vitest run --coverage` | Coverage report |
 
@@ -192,6 +199,7 @@ npm run preview
 - [Code Standards](./docs/code-standards.md)
 - [System Architecture](./docs/system-architecture.md)
 - [Project Roadmap](./docs/project-roadmap.md)
+- [Benchmark Test Guide](./docs/benchmark-test-guide.md)
 - [Deployment Guide](./docs/deployment-guide.md)
 - [Chat Backend](./docs/chat-backend.md)
 

@@ -1,77 +1,114 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { VerticalNavSidebar } from '../../components/chat/vertical-navigation-sidebar';
 import { DecisionTreeWithRecommendations } from '../../components/command-guide/decision-tree-with-recommendations';
 import { CommandBrowserWithSearch } from '../../components/command-guide/command-browser-with-search';
 import { Sparkles, BookOpen, Lightbulb } from 'lucide-react';
 ---
 
 <Layout title="Command Guide" description="Hướng dẫn sử dụng Claude Code commands">
-  <main class="min-h-screen">
-    {/* Hero Section */}
-    <section class="relative py-16 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-12">
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-400/10 border border-brand-400/30 mb-6">
-            <Sparkles className="w-5 h-5 text-brand-400" />
-            <span class="text-brand-200 font-medium">ClaudeKit Command Guide</span>
+  <div class="app-shell">
+    {/* Vertical Navigation Sidebar */}
+    <VerticalNavSidebar currentPage="guide" client:load />
+
+    {/* Main Content */}
+    <main class="app-shell-main app-shell-main-scroll relative z-10">
+      <div class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-400/10 border border-brand-400/30 mb-6">
+              <Sparkles className="w-5 h-5 text-brand-400" />
+              <span class="text-brand-200 font-medium">
+                <span data-i18n="vi">Hướng dẫn Command ClaudeKit</span>
+                <span data-i18n="en">ClaudeKit Command Guide</span>
+              </span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+              <span data-i18n="vi">Chọn đúng command cho</span>
+              <span data-i18n="en">Pick the right command for</span><br />
+              <span class="text-brand-400">
+                <span data-i18n="vi">mọi tình huống</span>
+                <span data-i18n="en">every situation</span>
+              </span>
+            </h1>
+            <p class="text-xl text-white/60 max-w-2xl mx-auto">
+              <span data-i18n="vi">
+                Không còn bối rối khi dùng Claude Code. Decision tree giúp bạn tìm command phù hợp,
+                và prompt optimizer giúp viết prompt chuyên nghiệp.
+              </span>
+              <span data-i18n="en">
+                Stop guessing with Claude Code. The decision tree helps choose the right command,
+                and the prompt optimizer helps craft professional prompts.
+              </span>
+            </p>
           </div>
-          <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
-            Chọn đúng command cho<br />
-            <span class="text-brand-400">mọi tình huống</span>
-          </h1>
-          <p class="text-xl text-white/60 max-w-2xl mx-auto">
-            Không còn bối rối khi dùng Claude Code. Decision tree giúp bạn tìm command phù hợp,
-            và prompt optimizer giúp viết prompt chuyên nghiệp.
-          </p>
-        </div>
 
-        {/* Quick Links */}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          <a
-            href="/guide/"
-            class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
-          >
-            <div class="p-3 rounded-xl bg-brand-400/20 text-brand-300 group-hover:bg-brand-400/30">
-              <Lightbulb className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 class="font-semibold text-white">Decision Tree</h3>
-              <p class="text-sm text-white/50">Tìm command phù hợp</p>
-            </div>
-          </a>
+          {/* Quick Links */}
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+            <a
+              href="/guide/"
+              class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
+            >
+              <div class="p-3 rounded-xl bg-brand-400/20 text-brand-300 group-hover:bg-brand-400/30">
+                <Lightbulb className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="font-semibold text-white">
+                  <span data-i18n="vi">Decision Tree</span>
+                  <span data-i18n="en">Decision Tree</span>
+                </h3>
+                <p class="text-sm text-white/50">
+                  <span data-i18n="vi">Tìm command phù hợp</span>
+                  <span data-i18n="en">Find the best command</span>
+                </p>
+              </div>
+            </a>
 
-          <a
-            href="/guide/commands"
-            class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
-          >
-            <div class="p-3 rounded-xl bg-blue-400/20 text-blue-300 group-hover:bg-blue-400/30">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 class="font-semibold text-white">Command Browser</h3>
-              <p class="text-sm text-white/50">Xem tất cả commands</p>
-            </div>
-          </a>
+            <a
+              href="/guide/commands"
+              class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
+            >
+              <div class="p-3 rounded-xl bg-brand-400/20 text-brand-300 group-hover:bg-brand-400/30">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="font-semibold text-white">
+                  <span data-i18n="vi">Command Browser</span>
+                  <span data-i18n="en">Command Browser</span>
+                </h3>
+                <p class="text-sm text-white/50">
+                  <span data-i18n="vi">Xem tất cả commands</span>
+                  <span data-i18n="en">Browse all commands</span>
+                </p>
+              </div>
+            </a>
 
-          <a
-            href="/guide/prompt-optimizer"
-            class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
-          >
-            <div class="p-3 rounded-xl bg-purple-400/20 text-purple-300 group-hover:bg-purple-400/30">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 class="font-semibold text-white">Prompt Optimizer</h3>
-              <p class="text-sm text-white/50">Tối ưu prompt với AI</p>
-            </div>
-          </a>
-        </div>
+            <a
+              href="/guide/prompt-optimizer"
+              class="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-brand-400/30 transition-all group"
+            >
+              <div class="p-3 rounded-xl bg-brand-400/20 text-brand-300 group-hover:bg-brand-400/30">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="font-semibold text-white">
+                  <span data-i18n="vi">Prompt Optimizer</span>
+                  <span data-i18n="en">Prompt Optimizer</span>
+                </h3>
+                <p class="text-sm text-white/50">
+                  <span data-i18n="vi">Tối ưu prompt với AI</span>
+                  <span data-i18n="en">Optimize prompts with AI</span>
+                </p>
+              </div>
+            </a>
+          </div>
 
-        {/* Decision Tree Section */}
-        <div class="mb-8">
-          <DecisionTreeWithRecommendations client:load />
+          {/* Decision Tree Section */}
+          <div class="mb-8">
+            <DecisionTreeWithRecommendations client:load />
+          </div>
         </div>
       </div>
-    </section>
-  </main>
+    </main>
+  </div>
 </Layout>

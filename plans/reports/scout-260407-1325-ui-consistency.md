@@ -1,0 +1,149 @@
+# Scout Report: UI Consistency Analysis
+**Date:** 2026-04-07 13:25  
+**Scope:** Navigation & Styling Audit  
+**Project:** D:\project\Clone\ck\claudekit-chatbot-astro
+
+---
+
+## 1. Danh sách tất cả Pages
+
+| File | Path | Purpose |
+|------|------|---------|
+| index.astro | src/pages/index.astro | Homepage - Chat với VerticalNav |
+| chat.astro | src/pages/chat.astro | Deprecated - backward compat only |
+| guide/index.astro | src/pages/guide/index.astro | Command Guide homepage |
+| guide/commands.astro | src/pages/guide/commands.astro | Command Browser page |
+| guide/prompt-optimizer.astro | src/pages/guide/prompt-optimizer.astro | Prompt Optimizer page |
+
+**Total Pages:** 5 (4 active + 1 deprecated)
+
+---
+
+## 2. Danh sách tất cả Layouts
+
+| File | Path | Notes |
+|------|------|-------|
+| Layout.astro | src/layouts/Layout.astro | Single layout dùng cho tất cả pages |
+
+**Total Layouts:** 1
+
+**Layout.astro details:**
+- Import global.css (glassmorphism design system)
+- Body bg: `bg-[#1e1e1e]`
+- Includes Sonner Toaster for notifications
+- No navigation inside layout - navigation added per-page
+
+---
+
+## 3. Navigation Components Found
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| VerticalNavSidebar | src/components/chat/vertical-navigation-sidebar.tsx | Main navigation sidebar |
+
+**VerticalNavSidebar details:**
+- Width: 64 (w-64 = 256px)
+- Background: `bg-white/5 backdrop-blur-xl`
+- Border: `border-r border-white/10`
+- Nav items: Chat, Hướng dẫn, Tối ưu prompt, Lịch sử, Cài đặt
+- Active state: `bg-brand-400/20 text-brand-300 border-brand-400/30`
+- Inactive state: `text-white/60 hover:text-white hover:bg-white/10`
+
+---
+
+## 4. Style Differences Analysis
+
+### 4.1 Page Structure Comparison
+
+| Aspect | index.astro (Chat) | guide/* pages |
+|--------|-------------------|---------------|
+| **Sidebar** | Có VerticalNavSidebar | KHÔNG có sidebar |
+| **Main wrapper** | `flex min-h-screen` | `min-h-screen` only |
+| **Layout** | Flex layout với sidebar | Direct main content |
+
+### 4.2 Background Styles
+
+| Page | Background Style | Inconsistency? |
+|------|------------------|----------------|
+| index.astro | Uses ChatFrame bg (gradient in component) | - |
+| guide/index.astro | No explicit bg (uses Layout.astro bg-[#1e1e1e]) | - |
+| guide/commands.astro | No explicit bg (uses Layout.astro bg-[#1e1e1e]) | - |
+| guide/prompt-optimizer.astro | `bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950` | **DIFFERENT** |
+
+### 4.3 Card/Container Styles
+
+| Page | Card Style |
+|------|-----------|
+| guide/index.astro | `bg-white/5 backdrop-blur-md border-white/10` |
+| guide/commands.astro | Không có card wrapper - direct content |
+| guide/prompt-optimizer.astro | `bg-gray-900/70 border-gray-700/50` | **DIFFERENT** |
+
+### 4.4 Text Colors
+
+| Page | Secondary Text |
+|------|----------------|
+| guide/index.astro | `text-white/60`, `text-white/50` |
+| guide/commands.astro | `text-white/50`, `text-white/60` |
+| guide/prompt-optimizer.astro | `text-gray-400` | **DIFFERENT** |
+
+### 4.5 Icon Backgrounds
+
+| Page | Icon Style |
+|------|-----------|
+| guide/index.astro | `bg-brand-400/20`, `bg-blue-400/20`, `bg-purple-400/20` |
+| guide/prompt-optimizer.astro | `bg-purple-500/20`, `bg-blue-500/20`, `bg-green-500/20` | **DIFFERENT (500 vs 400)** |
+
+---
+
+## 5. Critical Inconsistencies Found
+
+### HIGH PRIORITY
+
+1. **Missing Navigation on Guide Pages**
+   - guide/index.astro, guide/commands.astro, guide/prompt-optimizer.astro không có VerticalNavSidebar
+   - User không có cách nào navigate giữa các sections
+
+2. **Background Inconsistency**
+   - prompt-optimizer.astro dùng gray-950/gray-900
+   - guide/index dùng Layout default (#1e1e1e)
+   - Không consistent glassmorphism effect
+
+3. **Card Style Mismatch**
+   - guide/index dùng `bg-white/5`
+   - prompt-optimizer dùng `bg-gray-900/70`
+   - Không cùng glassmorphism depth system
+
+### MEDIUM PRIORITY
+
+4. **Text Color Inconsistency**
+   - Most pages dùng `text-white/xx`
+   - prompt-optimizer dùng `text-gray-400`
+
+5. **Icon Color Inconsistency**
+   - guide/index dùng `-400` variants (brand-400, blue-400)
+   - prompt-optimizer dùng `-500` variants
+
+---
+
+## 6. Recommended Actions
+
+1. **Add VerticalNavSidebar** vào tất cả guide pages
+2. **Standardize background** dùng glassmorphism gradient
+3. **Standardize card styles** dùng global.css glass-card classes
+4. **Standardize text colors** dùng white opacity variants
+5. **Standardize icon colors** dùng -400 variants (consistent với global.css)
+
+---
+
+## 7. Files to Modify
+
+| File | Changes Needed |
+|------|----------------|
+| src/pages/guide/index.astro | Add VerticalNavSidebar, standardize bg/card |
+| src/pages/guide/commands.astro | Add VerticalNavSidebar, standardize bg |
+| src/pages/guide/prompt-optimizer.astro | Add VerticalNavSidebar, standardize bg/card/text |
+| src/components/chat/vertical-navigation-sidebar.tsx | Update currentPage logic cho guide pages |
+
+---
+
+*Report generated by Scout agent*

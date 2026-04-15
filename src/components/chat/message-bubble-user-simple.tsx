@@ -6,9 +6,14 @@ import { MessageReactionsContainer } from './message-reactions-container';
 interface MessageBubbleUserProps {
   content: string;
   messageId?: string;
+  timestampLabel?: string;
 }
 
-export const MessageBubbleUser: React.FC<MessageBubbleUserProps> = ({ content, messageId }) => {
+export const MessageBubbleUser: React.FC<MessageBubbleUserProps> = ({
+  content,
+  messageId,
+  timestampLabel,
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -25,34 +30,32 @@ export const MessageBubbleUser: React.FC<MessageBubbleUserProps> = ({ content, m
   };
 
   return (
-    <div className="group/message flex gap-3 py-4 px-4">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center order-2 shadow-lg shadow-blue-500/20">
-        <User className="w-4 h-4 text-white" />
-      </div>
-      <div className="flex-1 flex flex-col items-end order-1">
-        <div className="relative">
-          <div className="bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3 max-w-[85%] shadow-lg shadow-blue-500/10">
-            <div className="text-gray-100 leading-relaxed">{content}</div>
-          </div>
-          {/* Actions - MOBILE: below, DESKTOP: overlay */}
-          <div className="
-            flex items-center gap-1 mt-2 justify-end
-            md:mt-0 md:absolute md:-top-2 md:right-0
-            opacity-100 md:opacity-0
-            md:group-hover/message:opacity-100
-            transition-opacity duration-200
-          ">
-            <button
-              onClick={handleCopy}
-              className="p-2 md:p-1.5 bg-gray-800/95 hover:bg-gray-700/50 rounded-md md:rounded-lg transition-colors"
-              title="Sao chép tin nhắn"
-            >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
-            </button>
-          </div>
+    <div className="group/message message-enter px-4 py-3 sm:px-8 md:px-10">
+      <div className="ml-auto flex max-w-[768px] flex-row-reverse items-start gap-3">
+        <div className="order-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text-muted)] shadow-[var(--app-shadow-soft)]">
+          <User className="h-4 w-4" />
         </div>
-        <span className="text-xs text-gray-500 mt-1">Bạn</span>
-        {messageId && <MessageReactionsContainer messageId={messageId} />}
+        <div className="order-1 flex min-w-0 flex-1 flex-col items-end">
+          <div className="relative max-w-full">
+            <div className="max-w-[min(100%,680px)] rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] bg-brand-400/20 px-5 py-4 text-[15px] leading-7 text-[var(--app-text)] shadow-[var(--app-shadow-soft)] transition-colors duration-200 group-hover/message:bg-[color-mix(in_srgb,var(--app-surface-muted)_82%,var(--app-surface))]">
+              <div className="whitespace-pre-wrap break-words">{content}</div>
+            </div>
+            <div className="mt-2 flex items-center justify-end gap-1 opacity-100 transition-opacity duration-200 md:absolute md:-top-2 md:right-0 md:mt-0 md:opacity-0 md:group-hover/message:opacity-100">
+              <button
+                onClick={handleCopy}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text-muted)] transition-colors hover:text-[var(--app-text)]"
+                title="Sao chép tin nhắn"
+                aria-label="Sao chép tin nhắn người dùng"
+              >
+                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <span className="mt-2 text-[13px] text-[var(--app-text-muted)]">
+            {timestampLabel ? `${timestampLabel} • Bạn` : 'Bạn'}
+          </span>
+          {messageId && <MessageReactionsContainer messageId={messageId} />}
+        </div>
       </div>
     </div>
   );

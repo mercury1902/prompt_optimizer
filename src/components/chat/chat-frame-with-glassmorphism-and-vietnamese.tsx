@@ -1,50 +1,223 @@
-// Refactored ChatFrame - Modular Architecture
-// Break down from 656 lines to <200 lines by extracting components
-// Components extracted: MessageBubbleUser, MessageBubbleAssistant, CommandPalette, ChatInput, ChatHeader
-// Added: ErrorBannerWithRetry, ScrollToBottomButton, HistoryPanelWireframe, useScrollPosition hook
-// Version: 2026-04-07-004
-
-const BUILD_VERSION = '2026-04-07-004';
+﻿const BUILD_VERSION = '2026-04-14-001';
 console.log('[Chat] Build version:', BUILD_VERSION);
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { MessageBubbleUser } from './message-bubble-user-simple';
 import { MessageBubbleAssistant } from './message-bubble-assistant-with-actions';
 import { CommandPalette } from './command-palette-with-cmdk';
-import { ChatInput } from './chat-input-with-keyboard-shortcuts';
+import { ChatInput, type CommandSuggestion } from './chat-input-with-keyboard-shortcuts';
 import { ChatHeader } from './chat-header-with-status';
-import { CodeBlockWithCopy } from './code-block-with-copy-button';
 import { ErrorBannerWithRetry } from './error-banner-with-retry';
 import { ScrollToBottomButton } from './scroll-to-bottom-button';
 import { HistoryPanelWireframe } from './history-panel-wireframe';
-import { useScrollPosition } from '../../hooks/useScrollPosition';
+import {
+  VirtualizedChatMessageList,
+  type VirtualizedChatMessage,
+  type VirtualizedChatMessageListHandle,
+} from './virtualized-chat-message-list';
 import { EmptyStateWithSuggestions } from './empty-state-with-suggestions';
+import { commands } from '../../data/commands';
+import { detectIntent, recommendCommands } from '../../lib/command-recommender';
+import { getSmartRecommendation } from '../../lib/workflow-recommendation-engine';
+import { appendChunkAndExtractSseEvents, extractDataPayloadFromSseEvent } from '../../utils/sse-event-parser';
+import { trackCommandTelemetryEvent } from '../../lib/local-command-usage-telemetry';
 
-interface Message {
-  id: string;
+interface Message extends VirtualizedChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  createdAt?: string;
+  isTyping?: boolean;
+}
+
+interface ChatSessionSummary {
+  id: string;
+  title: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  messageCount?: number;
+}
+
+interface StoredMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  createdAt?: string;
+}
+
+function normalizeCommandToken(commandToken: string): string {
+  const trimmed = commandToken.trim();
+  return trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
+}
+
+function resolveCommandName(commandToken: string): string {
+  const trimmed = commandToken.trim();
+  const normalizedToken = normalizeCommandToken(trimmed);
+
+  const matched = commands.find(
+    (command) =>
+      command.id === normalizedToken ||
+      command.name === trimmed ||
+      command.name === `/${normalizedToken}`,
+  );
+
+  if (matched) {
+    return matched.name;
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${normalizedToken}`;
+}
+
+function extractLeadingCommandToken(inputText: string): string | null {
+  const trimmed = inputText.trim();
+  if (!trimmed.startsWith('/')) {
+    return null;
+  }
+
+  const firstToken = trimmed.split(/\s+/)[0];
+  return firstToken || null;
+}
+
+function formatMessageTimestamp(createdAt?: string): string | undefined {
+  if (!createdAt) return undefined;
+
+  const parsedDate = new Date(createdAt);
+  if (Number.isNaN(parsedDate.getTime())) return undefined;
+
+  return parsedDate.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export default function ChatFrameWithGlassmorphismAndVietnamese() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [apiStatus, setApiStatus] = useState<'checking' | 'ready' | 'error'>('checking');
   const [commandOpen, setCommandOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'network' | 'server' | 'unknown'>('unknown');
   const [isRetrying, setIsRetrying] = useState(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
-  const { isNearBottom } = useScrollPosition(messagesContainerRef, 150);
+  const activeSessionIdRef = useRef<string | null>(null);
+  const messageListRef = useRef<VirtualizedChatMessageListHandle>(null);
+
+  const commandSuggestion = useMemo<CommandSuggestion | null>(() => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput || trimmedInput.startsWith('/')) {
+      return null;
+    }
+
+    const smartRecommendation = getSmartRecommendation(trimmedInput, commands);
+    if (smartRecommendation?.type === 'workflow') {
+      const firstAction =
+        smartRecommendation.workflow.steps.find((step) => step.command !== '/clear') ||
+        smartRecommendation.workflow.steps[0];
+      const suggestedCommand = resolveCommandName(firstAction?.command || '/ck:plan');
+
+      return {
+        command: suggestedCommand,
+        confidence: smartRecommendation.confidence,
+        reason: smartRecommendation.reason,
+        workflowName: smartRecommendation.workflow.name,
+        recommendationType: 'workflow',
+      };
+    }
+
+    const intentMatch = detectIntent(trimmedInput);
+    if (intentMatch) {
+      return {
+        command: resolveCommandName(intentMatch.command),
+        confidence: intentMatch.confidence,
+        reason: 'Khớp intent trực tiếp từ mô tả hiện tại',
+        recommendationType: 'command',
+      };
+    }
+
+    const rankedRecommendation = recommendCommands(trimmedInput, commands);
+    if (!rankedRecommendation.primary) {
+      return null;
+    }
+
+    return {
+      command: rankedRecommendation.primary.command.name,
+      confidence: rankedRecommendation.confidence,
+      reason: rankedRecommendation.primary.reason,
+      recommendationType: 'command',
+    };
+  }, [input]);
+
+  const renderedMessages = useMemo(() => {
+    const lastMessage = messages[messages.length - 1];
+    const shouldShowTyping = isStreaming && (!lastMessage || lastMessage.role === 'user');
+
+    if (!shouldShowTyping) {
+      return messages;
+    }
+
+    return [
+      ...messages,
+      {
+        id: 'typing-indicator',
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        isTyping: true,
+      },
+    ];
+  }, [messages, isStreaming]);
 
   useEffect(() => {
     console.log('[Chat] Build version:', BUILD_VERSION);
-    checkApiHealth();
+    void checkApiHealth();
+  }, []);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (commandOpen) setCommandOpen(false);
+      if (showHistory) setShowHistory(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [commandOpen, showHistory]);
+
+  const fetchSessions = useCallback(async () => {
+    setIsLoadingSessions(true);
+    try {
+      const response = await fetch('/api/sessions');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const body = await response.json().catch(() => ({} as { sessions?: ChatSessionSummary[] }));
+      const loadedSessions = Array.isArray(body.sessions) ? body.sessions : [];
+
+      setSessions(
+        [...loadedSessions].sort((a, b) => {
+          const aTime = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+          const bTime = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+          return bTime - aTime;
+        }),
+      );
+    } catch (error) {
+      console.error('[Chat] Failed to fetch sessions:', error);
+      setSessions([]);
+    } finally {
+      setIsLoadingSessions(false);
+    }
   }, []);
 
   const checkApiHealth = async () => {
@@ -56,23 +229,69 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
     }
   };
 
-  // Auto-scroll only when near bottom
-  useEffect(() => {
-    if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const handleSelectSession = async (sessionId: string) => {
+    if (isStreaming) {
+      toast.info('Đang nhận phản hồi, vui lòng chờ xong rồi đổi lịch sử');
+      return;
     }
-  }, [messages, isNearBottom]);
+
+    setIsLoadingHistory(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/chat?sessionId=${encodeURIComponent(sessionId)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const body = await response.json().catch(() => ({} as { messages?: StoredMessage[] }));
+      const loadedMessages = Array.isArray(body.messages) ? body.messages : [];
+
+      const normalizedMessages: Message[] = loadedMessages
+        .filter((message) => message.role === 'user' || message.role === 'assistant')
+        .map((message) => ({
+          id: message.id,
+          role: message.role as 'user' | 'assistant',
+          content: message.content,
+          createdAt: message.createdAt ?? new Date().toISOString(),
+        }));
+
+      setMessages(normalizedMessages);
+      setActiveSessionId(sessionId);
+      setShowHistory(false);
+      setIsNearBottom(true);
+    } catch (error) {
+      console.error('[Chat] Failed to load session history:', error);
+      toast.error('Không thể tải lịch sử cuộc trò chuyện');
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const handleToggleHistory = () => {
+    const willOpen = !showHistory;
+    setShowHistory(willOpen);
+    if (willOpen) {
+      void fetchSessions();
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
 
     setErrorMessage(null);
     setErrorType('unknown');
+    const nextInput = input.trim();
+    const executedCommand = extractLeadingCommandToken(nextInput);
+    if (executedCommand) {
+      trackCommandTelemetryEvent('run', executedCommand);
+    }
 
     const newMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: nextInput,
+      createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, newMessage]);
@@ -80,10 +299,12 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
     setIsStreaming(true);
 
     try {
+      const requestedSessionId = activeSessionIdRef.current;
+      const sessionIdAtSendStart = activeSessionIdRef.current;
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, sessionId: null }),
+        body: JSON.stringify({ message: nextInput, sessionId: requestedSessionId }),
       });
 
       if (!response.ok) {
@@ -94,42 +315,81 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
       const decoder = new TextDecoder();
       let assistantContent = '';
       let assistantId: string | null = null;
+      let assistantCreatedAt: string | undefined;
+      let sseBuffer = '';
+      let resolvedSessionId: string | null = requestedSessionId;
+      let streamCompletedWithoutError = false;
 
       if (!reader) throw new Error('No response body');
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        const decodedChunk = value ? decoder.decode(value, { stream: !done }) : decoder.decode();
+        const parsedChunk = appendChunkAndExtractSseEvents(sseBuffer, decodedChunk);
+        const eventsToProcess =
+          done && parsedChunk.remainder.trim().length > 0
+            ? [...parsedChunk.events, parsedChunk.remainder]
+            : parsedChunk.events;
+        sseBuffer = done ? '' : parsedChunk.remainder;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        for (const eventBlock of eventsToProcess) {
+          const data = extractDataPayloadFromSseEvent(eventBlock);
+          if (!data || data === '[DONE]') continue;
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.type === 'chunk' && parsed.content) {
-                assistantContent += parsed.content;
-                setMessages((prev) => {
-                  if (assistantId && prev.find((m) => m.id === assistantId)) {
-                    return prev.map((m) =>
-                      m.id === assistantId ? { ...m, content: assistantContent } : m
-                    );
-                  }
-                  assistantId = (Date.now() + 1).toString();
-                  return [
-                    ...prev,
-                    { id: assistantId, role: 'assistant', content: assistantContent },
-                  ];
-                });
-              }
-            } catch {
-              // Skip invalid JSON
+          try {
+            const parsed = JSON.parse(data) as { type?: string; content?: string; sessionId?: string };
+
+            if (parsed.type === 'session' && parsed.sessionId) {
+              resolvedSessionId = parsed.sessionId;
+              continue;
             }
+
+            if (parsed.type === 'chunk' && parsed.content) {
+              assistantContent += parsed.content;
+              if (!assistantCreatedAt) {
+                assistantCreatedAt = new Date().toISOString();
+              }
+
+              setMessages((prev) => {
+                if (assistantId && prev.find((message) => message.id === assistantId)) {
+                  return prev.map((message) =>
+                    message.id === assistantId ? { ...message, content: assistantContent } : message,
+                  );
+                }
+
+                assistantId = (Date.now() + 1).toString();
+                return [
+                  ...prev,
+                  {
+                    id: assistantId,
+                    role: 'assistant',
+                    content: assistantContent,
+                    createdAt: assistantCreatedAt,
+                  },
+                ];
+              });
+            }
+          } catch {
+            // Ignore malformed SSE chunks
           }
         }
+
+        if (done) {
+          streamCompletedWithoutError = true;
+          break;
+        }
+      }
+
+      if (
+        resolvedSessionId &&
+        activeSessionIdRef.current === sessionIdAtSendStart &&
+        resolvedSessionId !== activeSessionIdRef.current
+      ) {
+        setActiveSessionId(resolvedSessionId);
+      }
+
+      if (executedCommand && streamCompletedWithoutError) {
+        trackCommandTelemetryEvent('success', executedCommand);
       }
     } catch (error) {
       console.error('[Chat] Error:', error);
@@ -149,11 +409,9 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
     setIsRetrying(true);
     await checkApiHealth();
 
-    // Retry the last user message if available
     const lastUserMessage = messages.findLast((m) => m.role === 'user');
     if (lastUserMessage) {
       setInput(lastUserMessage.content);
-      // Remove the failed assistant message if exists
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg?.role === 'assistant' && lastMsg.content === '') {
@@ -161,7 +419,9 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
         }
         return prev;
       });
-      setTimeout(() => handleSend(), 100);
+      setTimeout(() => {
+        void handleSend();
+      }, 100);
     }
 
     setIsRetrying(false);
@@ -173,7 +433,7 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
   };
 
   const handleCommandSelect = (command: string) => {
-    setInput(command + ' ');
+    setInput(`${command} `);
     setCommandOpen(false);
   };
 
@@ -182,41 +442,49 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
     if (errorMessage) setErrorMessage(null);
   };
 
+  const handleApplyCommandSuggestion = (command: string) => {
+    const normalizedCommand = command.trim();
+    if (!normalizedCommand) return;
+
+    setInput((previousInput) => {
+      const trimmed = previousInput.trim();
+      if (!trimmed || trimmed.startsWith('/')) {
+        return `${normalizedCommand} `;
+      }
+      return `${normalizedCommand} ${trimmed}`;
+    });
+  };
+
   const handleClear = () => {
     setMessages([]);
+    setInput('');
+    setActiveSessionId(null);
     setErrorMessage(null);
+    setIsNearBottom(true);
     toast.info('Đã xóa cuộc trò chuyện');
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messageListRef.current?.scrollToBottom('smooth');
   };
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="relative h-full flex justify-center p-4">
-        <div className="w-full max-w-4xl flex flex-col bg-gray-900/70 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden relative">
+    <div className="relative h-screen w-full overflow-hidden bg-[var(--app-bg)]">
+      <div className="relative flex h-full w-full justify-center px-0 md:px-6 lg:px-10">
+        <div className="relative flex h-full w-full max-w-[1140px] flex-col overflow-hidden border border-[var(--app-border)] bg-[color-mix(in_srgb,var(--app-surface)_90%,transparent)] shadow-[var(--app-shadow)] md:rounded-2xl">
           <ChatHeader
             apiStatus={apiStatus}
-            onRefresh={() => { localStorage.clear(); window.location.reload(); }}
-            onToggleHistory={() => setShowHistory(!showHistory)}
+            onRefresh={() => {
+              localStorage.clear();
+              window.location.reload();
+            }}
+            onToggleHistory={handleToggleHistory}
             onNewChat={handleClear}
             showHistory={showHistory}
           />
 
-          <div className="flex-1 flex overflow-hidden relative">
-            {/* Messages Container */}
-            <div
-              ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto relative"
-            >
+          <div className="relative flex min-h-0 flex-1 overflow-hidden">
+            <div className="relative flex-1">
               {errorMessage && (
                 <ErrorBannerWithRetry
                   message={errorMessage}
@@ -226,6 +494,7 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
                   isRetrying={isRetrying}
                 />
               )}
+
               {messages.length === 0 ? (
                 <EmptyStateWithSuggestions
                   onSuggestionClick={(text) => {
@@ -235,28 +504,32 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
                   onCommandPaletteOpen={() => setCommandOpen(true)}
                 />
               ) : (
-                <div className="divide-y divide-gray-800/50">
-                  {messages.map((message) => (
-                    <div key={message.id}>
-                      {message.role === 'user' ? (
-                        <MessageBubbleUser content={message.content} messageId={message.id} />
-                      ) : (
-                        <MessageBubbleAssistant content={message.content} messageId={message.id} />
-                      )}
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
+                <VirtualizedChatMessageList
+                  ref={messageListRef}
+                  messages={renderedMessages}
+                  className="h-full overflow-y-auto pb-6 pt-3"
+                  onNearBottomChange={setIsNearBottom}
+                  renderMessage={(message) =>
+                    message.role === 'user' ? (
+                      <MessageBubbleUser
+                        content={message.content}
+                        messageId={message.id}
+                      />
+                    ) : (
+                      <MessageBubbleAssistant
+                        content={message.content}
+                        messageId={message.id === 'typing-indicator' ? undefined : message.id}
+                        isTyping={Boolean(message.isTyping)}
+                        timestampLabel={formatMessageTimestamp(message.createdAt)}
+                      />
+                    )
+                  }
+                />
               )}
 
-              {/* Scroll to bottom button */}
-              <ScrollToBottomButton
-                onClick={scrollToBottom}
-                isVisible={!isNearBottom && messages.length > 0}
-              />
+              <ScrollToBottomButton onClick={scrollToBottom} isVisible={!isNearBottom && messages.length > 0} />
             </div>
 
-            {/* History Panel */}
             <HistoryPanelWireframe
               isOpen={showHistory}
               onClose={() => setShowHistory(false)}
@@ -264,6 +537,10 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
                 handleClear();
                 setShowHistory(false);
               }}
+              sessions={sessions}
+              activeSessionId={activeSessionId}
+              isLoading={isLoadingSessions || isLoadingHistory}
+              onSelectSession={handleSelectSession}
             />
           </div>
 
@@ -272,6 +549,17 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
             onChange={handleInputChange}
             onSend={handleSend}
             onCommandPaletteOpen={() => setCommandOpen(true)}
+            commandSuggestion={commandSuggestion}
+            onApplyCommandSuggestion={handleApplyCommandSuggestion}
+            onEscape={() => {
+              setShowHistory(false);
+              setCommandOpen(false);
+            }}
+            onOpenGuide={() => {
+              const basePath = import.meta.env.BASE_URL || '/';
+              const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
+              window.location.href = `${normalizedBase}guide/`;
+            }}
             isStreaming={isStreaming}
           />
 
@@ -279,6 +567,8 @@ export default function ChatFrameWithGlassmorphismAndVietnamese() {
             open={commandOpen}
             onOpenChange={setCommandOpen}
             onSelect={handleCommandSelect}
+            contextInput={input}
+            interactionCount={messages.filter((message) => message.role === 'user').length}
           />
         </div>
       </div>

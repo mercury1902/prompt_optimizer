@@ -22,8 +22,8 @@ export const MessageReactionButton: React.FC<MessageReactionButtonProps> = ({
         flex items-center gap-1 px-2 py-1 rounded-lg
         transition-all duration-200
         ${isActive
-          ? 'bg-blue-500/20 border border-blue-500/50 text-blue-300'
-          : 'bg-gray-800/50 border border-gray-700/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-300'
+          ? 'bg-brand-400/20 border border-brand-400/50 text-brand-300'
+          : 'bg-white/10 border border-white/10 text-white/60 hover:bg-white/20 hover:text-white'
         }
       `}
       aria-label={`${label}: ${count}`}

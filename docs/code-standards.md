@@ -99,6 +99,14 @@ export function ChatInput({
 
 ## Glassmorphism Design System
 
+### Global Accent and Locale Policy
+
+- **One accent only:** use `brand-*` for product emphasis across pages.
+- Do not introduce new primary accent families for actions/navigation.
+- Status semantics (success/warning/error) are allowed only for state feedback.
+- UI text in active surfaces must support bilingual toggle (`vi` and `en`).
+- Source of truth for UI copy keys: `src/lib/bilingual-language-toggle-translations.ts`.
+
 ### CSS Variables (Design Tokens)
 All glassmorphism values are defined in `src/styles/global.css`:
 
@@ -510,4 +518,3 @@ chore: update dependencies to latest versions
 2. Run type check - No TypeScript errors
 3. Review changes - No console.logs or debug code
 4. Check imports - No unused imports
-

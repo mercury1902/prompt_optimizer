@@ -1,5 +1,6 @@
 import React from 'react';
 import { Zap, RefreshCw, History, Plus } from 'lucide-react';
+import { useBilingualLanguageToggleState } from '../../hooks/use-bilingual-language-toggle-state';
 
 interface ChatHeaderProps {
   apiStatus: 'checking' | 'ready' | 'error';
@@ -16,23 +17,25 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onNewChat,
   showHistory
 }) => {
+  const { t } = useBilingualLanguageToggleState();
+
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-gray-800/50 backdrop-blur-md border-b border-gray-700/50">
+    <header className="flex items-center justify-between border-b border-[var(--app-border)] bg-[color-mix(in_srgb,var(--app-surface)_92%,transparent)] px-4 py-4 backdrop-blur-xl sm:px-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-          <Zap className="w-5 h-5 text-white" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] shadow-[var(--app-shadow-soft)]">
+          <Zap className="h-5 w-5 text-[var(--accent)]" />
         </div>
         <div>
-          <h1 className="font-semibold text-gray-100">ClaudeKit Chat</h1>
-          <p className="text-xs text-gray-400 flex items-center gap-1">
+          <h1 className="text-[15px] font-semibold text-[var(--app-text)]">{t('chat.title', 'ClaudeKit Chat')}</h1>
+          <p className="flex items-center gap-1 text-[13px] text-[var(--app-text-muted)]">
             {apiStatus === 'checking' && (
-              <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />Đang kết nối...</>
+              <><span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />{t('chat.status.checking', 'Connecting...')}</>
             )}
             {apiStatus === 'ready' && (
-              <><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Trợ lý AI đang hoạt động</>
+              <><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />{t('chat.status.ready', 'AI assistant is online')}</>
             )}
             {apiStatus === 'error' && (
-              <><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Lỗi kết nối API</>
+              <><span className="h-1.5 w-1.5 rounded-full bg-red-500" />{t('chat.status.error', 'API connection error')}</>
             )}
           </p>
         </div>
@@ -41,26 +44,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         {apiStatus === 'error' && (
           <button
             onClick={onRefresh}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 transition-all text-sm"
-            title="Xóa cache và tải lại"
+            className="flex min-h-11 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300"
+            title={t('chat.refresh', 'Refresh')}
           >
             <RefreshCw className="w-4 h-4" />
-            <span>Làm mới</span>
+            <span>{t('chat.refresh', 'Refresh')}</span>
           </button>
         )}
         <button
           onClick={onToggleHistory}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white transition-all text-sm"
+          className="flex min-h-11 items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
         >
           <History className="w-4 h-4" />
-          <span>Lịch sử</span>
+          <span className="hidden sm:inline">{t('chat.history', 'History')}</span>
         </button>
         <button
           onClick={onNewChat}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white transition-all text-sm"
+          className="flex min-h-11 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--accent)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--accent)_16%,var(--app-surface))] px-3 py-2 text-sm font-medium text-[var(--app-text)] transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_22%,var(--app-surface))]"
         >
           <Plus className="w-4 h-4" />
-          <span>Cuộc trò chuyện mới</span>
+          <span className="hidden sm:inline">{t('chat.new-chat', 'New conversation')}</span>
         </button>
       </div>
     </header>

@@ -1,7 +1,7 @@
 # Project Roadmap
 
-**Version:** 0.0.1  
-**Last Updated:** 2026-04-07
+**Version:** 0.0.2  
+**Last Updated:** 2026-04-14
 
 ---
 
@@ -12,8 +12,38 @@
 | Phase 1 | Foundation - Core chat, command system | Completed | 100% |
 | Phase 2 | Backend - API, database, streaming | Completed | 100% |
 | Phase 3 | UX Enhancement - UI polish, features | Completed | 100% |
+| Phase 3.5 | UI Consistency Program - bilingual + design governance | In Progress | 20% |
 | Phase 4 | Infrastructure - Security, caching, resilience | In Progress | 30% |
 | Phase 5 | Advanced Features - Tools, auth, cloud | Planned | 0% |
+
+---
+
+## Phase 3.5: UI Consistency Program (In Progress)
+
+### Milestones
+- [x] Bilingual language toggle foundation (`vi`/`en`)
+- [x] Global accent policy decision locked (brand accent only)
+- [x] Legacy neutral chat components marked fully deprecated
+- [x] Design guidelines document created
+- [x] UI component inventory created
+- [ ] Token compliance checker integrated in CI
+- [ ] Accessibility WCAG automation gates
+- [ ] Responsive regression matrix automation
+
+### Deliverables
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Bilingual toggle infra | Completed | localStorage + cross-component event sync |
+| Core chat bilingual labels | Completed | Sidebar, header, input, empty state |
+| Guide/optimizer bilingual page text | Completed | Major headings + supporting copy |
+| Global accent normalization | In Progress | Primary surfaces updated to brand accent |
+| Legacy fallback deprecation | Completed | Removed from public component barrel |
+
+### Success Metrics
+- [ ] Design token coverage >= 85%
+- [ ] Component reuse rate >= 70%
+- [ ] Accessibility score >= 95 on core routes
+- [ ] Mobile layout defects P1/P2 = 0
 
 ---
 
@@ -136,6 +166,7 @@ Message (id, sessionId, role, content, createdAt, toolCalls, toolResults, isComp
 - [ ] Security middleware hardening
 - [ ] Input validation
 - [ ] CORS configuration
+- [x] Benchmark suite for command discovery + telemetry + live FirePass evaluation
 
 ### Current Status
 | Component | Status | Notes |
@@ -305,4 +336,3 @@ const providers: Provider[] = [
 | Scaling challenges | Medium | Low | Stateless design |
 | Tool execution security | High | Medium | Sandboxed execution (E2B) |
 | Rate limiter complexity | Low | High | Start simple, iterate |
-

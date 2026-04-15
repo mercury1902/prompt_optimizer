@@ -1,6 +1,6 @@
 /**
  * @deprecated Use ChatFrameWithGlassmorphismAndVietnamese from components/chat/ instead.
- * This component will be removed in a future release.
+ * Fully deprecated. Do not use for new development.
  */
 
 import { useAstroChat } from '../hooks/useAstroChat';

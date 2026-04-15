@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy neutral-theme chat input.
+ * Fully deprecated in favor of `components/chat/chat-input-with-keyboard-shortcuts.tsx`.
+ */
+
 import { useRef, useEffect } from 'react';
 import { Send, Square } from 'lucide-react';
 import type { ChatInputProps } from '../types/chat';

@@ -11,8 +11,14 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
+    "benchmark": "vitest run tests/benchmark/command-discovery-success-benchmark.test.ts tests/benchmark/telemetry-ranking-learning-benchmark.test.ts",
+    "benchmark:live": "vitest run tests/benchmark/live-firepass-kimi-prompt-optimizer-benchmark.test.ts",
+    "benchmark:all": "npm run benchmark && npm run benchmark:live",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
@@ -38,6 +44,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

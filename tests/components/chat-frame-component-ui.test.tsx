@@ -10,6 +10,10 @@ import {
   ChatInputWithCommandPalette,
   CodeBlockWithCopy,
 } from '../../src/components/chat';
+import {
+  __unsafeClearLocalCommandTelemetryForTests,
+  __unsafeGetLocalCommandTelemetryForTests,
+} from '../../src/lib/local-command-usage-telemetry';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -32,9 +36,14 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('../../src/components/chat/command-palette-with-cmdk', () => ({
+  CommandPalette: () => null,
+}));
+
 describe('Chat Frame Component UI Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __unsafeClearLocalCommandTelemetryForTests();
     mockWriteText.mockClear();
     // Default successful health check
     mockFetch.mockResolvedValue({
@@ -102,8 +111,8 @@ describe('Chat Frame Component UI Tests', () => {
     it('should have correct styling classes', () => {
       const { container } = render(<MessageBubbleUser content="Test" />);
 
-      // User message should have blue styling
-      const messageDiv = container.querySelector('.bg-blue-600');
+      // User message should have brand styling
+      const messageDiv = container.querySelector('.bg-brand-400\\/20');
       expect(messageDiv).toBeTruthy();
     });
   });
@@ -212,15 +221,14 @@ describe('Chat Frame Component UI Tests', () => {
     it('should disable send button when input is empty', () => {
       render(<ChatInputWithCommandPalette value="" onChange={() => {}} onSend={() => {}} onCommandPaletteOpen={() => {}} />);
 
-      const sendButton = screen.getByRole('button', { name: '' });
+      const sendButton = screen.getByTestId('chat-submit-button');
       expect(sendButton).toBeDisabled();
     });
 
     it('should enable send button when input has content', async () => {
-      const user = userEvent.setup();
       render(<ChatInputWithCommandPalette value="Hello" onChange={() => {}} onSend={() => {}} onCommandPaletteOpen={() => {}} />);
 
-      const sendButton = screen.getByRole('button', { name: '' });
+      const sendButton = screen.getByTestId('chat-submit-button');
       expect(sendButton).not.toBeDisabled();
     });
 
@@ -405,6 +413,48 @@ describe('Chat Frame Component UI Tests', () => {
 
       // Should still be on the page
       expect(screen.getByPlaceholderText(/Nhập \/ để xem lệnh/)).toBeInTheDocument();
+    });
+
+    it('tracks run and success telemetry when slash command completes', async () => {
+      const user = userEvent.setup();
+
+      const mockReader = {
+        read: vi.fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"type":"session","sessionId":"session-run-1"}\n\n'),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"type":"chunk","content":"Hoàn tất"}\n\n'),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+      };
+
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce({ ok: true }); // health
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: {
+          getReader: () => mockReader,
+        },
+      });
+
+      render(<ChatFrameWithGlassmorphismAndVietnamese />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Nhập \/ để xem lệnh/)).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText(/Nhập \/ để xem lệnh/);
+      await user.type(input, '/ck:fix sửa lỗi parser');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        const telemetry = __unsafeGetLocalCommandTelemetryForTests();
+        expect(telemetry.commands['ck:fix']?.run).toBe(1);
+        expect(telemetry.commands['ck:fix']?.success).toBe(1);
+      });
     });
   });
 

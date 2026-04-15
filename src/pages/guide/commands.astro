@@ -1,36 +1,40 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { VerticalNavSidebar } from '../../components/chat/vertical-navigation-sidebar';
 import { CommandBrowserWithSearch } from '../../components/command-guide/command-browser-with-search';
-import { Terminal, ArrowLeft } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 ---
 
 <Layout title="Command Browser" description="Danh sách tất cả Claude Code commands">
-  <main class="min-h-screen">
-    <section class="py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-6xl mx-auto">
-        {/* Back Link */}
-        <a
-          href="/guide/"
-          class="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại Command Guide
-        </a>
+  <div class="app-shell">
+    {/* Vertical Navigation Sidebar */}
+    <VerticalNavSidebar currentPage="guide" client:load />
 
-        {/* Header */}
-        <div class="flex items-center gap-4 mb-8">
-          <div class="p-3 rounded-xl bg-blue-400/20 text-blue-300">
-            <Terminal className="w-8 h-8" />
+    {/* Main Content */}
+    <main class="app-shell-main app-shell-main-scroll relative z-10">
+      <div class="py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+          {/* Header */}
+          <div class="flex items-center gap-4 mb-8">
+            <div class="p-3 rounded-xl bg-brand-400/20 text-brand-300">
+              <Terminal className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold text-white">
+                <span data-i18n="vi">Command Browser</span>
+                <span data-i18n="en">Command Browser</span>
+              </h1>
+              <p class="text-white/60">
+                <span data-i18n="vi">Danh sách đầy đủ tất cả Claude Code commands</span>
+                <span data-i18n="en">Complete list of Claude Code commands</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 class="text-3xl font-bold text-white">Command Browser</h1>
-            <p class="text-white/60">Danh sách đầy đủ tất cả Claude Code commands</p>
-          </div>
+
+          {/* Command Browser */}
+          <CommandBrowserWithSearch client:load />
         </div>
-
-        {/* Command Browser */}
-        <CommandBrowserWithSearch client:load />
       </div>
-    </section>
-  </main>
+    </main>
+  </div>
 </Layout>

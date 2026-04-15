@@ -1,22 +1,40 @@
 import React from 'react';
 import { Code, BookOpen, Bug, Zap, MessageSquare } from 'lucide-react';
+import { useBilingualLanguageToggleState } from '../../hooks/use-bilingual-language-toggle-state';
 
 interface EmptyStateProps {
   onSuggestionClick: (text: string) => void;
   onCommandPaletteOpen: () => void;
 }
 
-const quickSuggestions = [
-  { icon: Code, label: 'Viết code', text: 'Viết một hàm JavaScript để...', color: 'blue' },
-  { icon: BookOpen, label: 'Giải thích', text: 'Giải thích khái niệm...', color: 'green' },
-  { icon: Bug, label: 'Debug lỗi', text: 'Giúp tôi sửa lỗi này...', color: 'red' },
-  { icon: Zap, label: 'Lệnh nhanh', text: '/', color: 'yellow' },
-];
-
 export const EmptyStateWithSuggestions: React.FC<EmptyStateProps> = ({
   onSuggestionClick,
   onCommandPaletteOpen,
 }) => {
+  const { t, isEnglish } = useBilingualLanguageToggleState();
+  const quickSuggestions = [
+    {
+      icon: Code,
+      label: t('chat.empty.write-code', 'Write code'),
+      text: isEnglish ? 'Write a JavaScript function to...' : 'Viết một hàm JavaScript để...',
+    },
+    {
+      icon: BookOpen,
+      label: t('chat.empty.explain', 'Explain'),
+      text: isEnglish ? 'Explain this concept...' : 'Giải thích khái niệm...',
+    },
+    {
+      icon: Bug,
+      label: t('chat.empty.debug', 'Debug issue'),
+      text: isEnglish ? 'Help me fix this issue...' : 'Giúp tôi sửa lỗi này...',
+    },
+    {
+      icon: Zap,
+      label: t('chat.empty.quick-command', 'Quick command'),
+      text: '/',
+    },
+  ];
+
   const handleSuggestionClick = (suggestion: typeof quickSuggestions[0]) => {
     if (suggestion.text === '/') {
       onCommandPaletteOpen();
@@ -26,47 +44,40 @@ export const EmptyStateWithSuggestions: React.FC<EmptyStateProps> = ({
   };
 
   return (
-    <div className="h-full flex items-center justify-center p-4">
-      <div className="glass-card-depth-2 animated-border max-w-md w-full p-6 md:p-8">
+    <div className="flex h-full items-center justify-center px-4 py-8 sm:px-8">
+      <div className="w-full max-w-[768px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-[var(--app-shadow-soft)] md:p-8">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center">
-            <MessageSquare className="w-6 h-6 text-white" />
+        <div className="mb-7 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--accent)]">
+            <MessageSquare className="h-6 w-6" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-100 mb-2">
-            Bắt đầu cuộc trò chuyện mới
+          <h2 className="mb-2 text-xl font-semibold text-[var(--app-text)]">
+            {t('chat.empty.title', 'Start a new conversation')}
           </h2>
-          <p className="text-sm text-gray-400">
-            Chọn gợi ý bên dưới hoặc nhập câu hỏi của bạn
+          <p className="text-sm leading-6 text-[var(--app-text-muted)]">
+            {t('chat.empty.subtitle', 'Pick a suggestion below or type your own question')}
           </p>
         </div>
 
         {/* Suggestion Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {quickSuggestions.map((suggestion) => {
             const Icon = suggestion.icon;
-            const colorClasses: Record<string, { icon: string; border: string }> = {
-              blue: { icon: 'text-blue-400', border: 'hover:border-blue-500/30' },
-              green: { icon: 'text-green-400', border: 'hover:border-green-500/30' },
-              red: { icon: 'text-red-400', border: 'hover:border-red-500/30' },
-              yellow: { icon: 'text-yellow-400', border: 'hover:border-yellow-500/30' },
-            };
-            const colors = colorClasses[suggestion.color];
 
             return (
               <button
                 key={suggestion.label}
                 onClick={() => handleSuggestionClick(suggestion)}
                 className={`
-                  flex flex-col items-center gap-2 p-4 rounded-xl
-                  bg-gray-800/50 hover:bg-gray-700/50
-                  border border-gray-700/50 ${colors.border}
-                  transition-all duration-200
+                  group flex min-h-11 flex-col items-center gap-2 rounded-xl border border-[var(--app-border)]
+                  bg-[var(--app-surface-muted)] p-4 text-center
+                  transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--app-border))]
+                  hover:bg-[color-mix(in_srgb,var(--accent)_10%,var(--app-surface-muted))]
                   group
                 `}
               >
-                <Icon className={`w-5 h-5 ${colors.icon}`} />
-                <span className="text-sm text-gray-300 group-hover:text-gray-100">
+                <Icon className="h-5 w-5 text-[var(--accent)]" />
+                <span className="text-sm text-[var(--app-text-muted)] group-hover:text-[var(--app-text)]">
                   {suggestion.label}
                 </span>
               </button>
@@ -75,14 +86,14 @@ export const EmptyStateWithSuggestions: React.FC<EmptyStateProps> = ({
         </div>
 
         {/* Keyboard Hints */}
-        <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center justify-center gap-4 text-xs text-[var(--app-text-muted)]">
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-700/50 rounded text-gray-400">/</kbd>
-            <span>cho lệnh</span>
+            <kbd className="rounded border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-1.5 py-0.5 text-[var(--app-text-muted)]">/</kbd>
+            <span>{t('chat.input.hint.commands', 'for commands')}</span>
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-700/50 rounded text-gray-400">⌘K</kbd>
-            <span>cho palette</span>
+            <kbd className="rounded border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-1.5 py-0.5 text-[var(--app-text-muted)]">⌘K</kbd>
+            <span>{t('chat.input.hint.palette', 'for palette')}</span>
           </span>
         </div>
       </div>

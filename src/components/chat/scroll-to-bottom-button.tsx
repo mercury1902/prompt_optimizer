@@ -17,13 +17,13 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gray-800/90 backdrop-blur-md border border-gray-700/50 rounded-full shadow-lg text-gray-200 hover:bg-gray-700/90 transition-all z-30"
+      className="absolute bottom-5 right-5 z-30 flex min-h-11 items-center gap-2 rounded-full border border-[var(--app-border)] bg-[color-mix(in_srgb,var(--app-surface)_90%,transparent)] px-4 py-2 text-[var(--app-text)] shadow-[var(--app-shadow-soft)] backdrop-blur-xl transition-colors hover:bg-[var(--app-surface-muted)]"
       aria-label="Cuộn xuống dưới"
     >
       <ChevronDown className="w-4 h-4" />
       <span className="text-sm">Xuống dưới</span>
       {unreadCount && unreadCount > 0 && (
-        <span className="ml-1 px-1.5 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">
+        <span className="ml-1 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-xs font-medium text-white">
           {unreadCount}
         </span>
       )}

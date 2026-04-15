@@ -1,8 +1,11 @@
 export interface ParsedPromptResult {
   optimizedPrompt: string;
+  optimizedPromptEn?: string;
+  optimizedPromptVi?: string;
   suggestedCommand: string;
   explanation: string;
   rawContent: string;
+  detectedInputLanguage?: 'vi' | 'en' | 'mixed';
 }
 
 /**
@@ -18,6 +21,11 @@ export interface ParsedPromptResult {
  * [content]
  */
 export function parsePromptResult(content: string): ParsedPromptResult {
+  const jsonParsedResult = parseJsonPromptResult(content);
+  if (jsonParsedResult) {
+    return jsonParsedResult;
+  }
+
   const result: ParsedPromptResult = {
     optimizedPrompt: '',
     suggestedCommand: '',
@@ -74,11 +82,75 @@ export function parsePromptResult(content: string): ParsedPromptResult {
   return result;
 }
 
+function parseJsonPromptResult(content: string): ParsedPromptResult | null {
+  const raw = extractJsonObject(content);
+  if (!raw) return null;
+
+  const optimizedPromptEn = String(raw.optimizedPromptEn ?? '').trim();
+  const optimizedPromptVi = String(raw.optimizedPromptVi ?? '').trim();
+  const fallbackPrompt = String(raw.optimizedPrompt ?? '').trim();
+  const suggestedCommand = String(raw.suggestedCommand ?? raw.command ?? '').trim();
+  const explanation = String(raw.explanation ?? raw.reason ?? '').trim();
+  const detectedInputLanguage = String(raw.detectedInputLanguage ?? 'mixed').trim().toLowerCase();
+
+  if (!suggestedCommand || (!optimizedPromptEn && !optimizedPromptVi && !fallbackPrompt)) {
+    return null;
+  }
+
+  const normalizedEn = optimizedPromptEn || fallbackPrompt || optimizedPromptVi;
+  const normalizedVi = optimizedPromptVi || fallbackPrompt || optimizedPromptEn;
+
+  return {
+    optimizedPrompt: normalizedEn,
+    optimizedPromptEn: normalizedEn,
+    optimizedPromptVi: normalizedVi,
+    suggestedCommand,
+    explanation,
+    rawContent: content,
+    detectedInputLanguage:
+      detectedInputLanguage === 'vi' || detectedInputLanguage === 'en' || detectedInputLanguage === 'mixed'
+        ? detectedInputLanguage
+        : 'mixed',
+  };
+}
+
+function extractJsonObject(content: string): Record<string, unknown> | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+
+  const withoutFence = trimmed
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+
+  try {
+    return JSON.parse(withoutFence) as Record<string, unknown>;
+  } catch {
+    const firstBrace = withoutFence.indexOf('{');
+    const lastBrace = withoutFence.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      return null;
+    }
+    try {
+      return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1)) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+}
+
 /**
  * Check if content follows the expected structured format
  */
 export function isStructuredFormat(content: string): boolean {
-  return content.includes('✅') && content.includes('💡');
+  if (content.includes('✅') && content.includes('💡')) {
+    return true;
+  }
+
+  const jsonObject = extractJsonObject(content);
+  if (!jsonObject) return false;
+  return typeof jsonObject.suggestedCommand === 'string';
 }
 
 /**
@@ -87,7 +159,7 @@ export function isStructuredFormat(content: string): boolean {
  */
 export function extractCommand(text: string): string {
   // Look for /ck: commands
-  const match = text.match(/(\/ck:\w+(?:\s+--?[\w-]+)*)/);
+  const match = text.match(/(\/ck:[a-zA-Z0-9-]+(?::[a-zA-Z0-9-]+)*(?:\s+--?[\w-]+)*)/);
   return match ? match[1] : text;
 }
 
@@ -96,8 +168,7 @@ export function extractCommand(text: string): string {
  */
 export function formatOptimizedPrompt(prompt: string): string {
   return prompt
-    .replace(/\*\*/g, '') // Remove markdown bold
-    .replace(/\*/g, '') // Remove markdown italic
+    .replace(/\r\n/g, '\n')
     .trim();
 }
 

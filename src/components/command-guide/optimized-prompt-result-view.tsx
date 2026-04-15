@@ -1,249 +1,318 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check, MessageSquare, Terminal, FileText, GitCompare } from 'lucide-react';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Check, Copy, GitCompare, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ParsedPromptResult } from '../../utils/prompt-response-parser';
-import {
-  storePromptForChat,
-  formatOptimizedPrompt,
-  extractCommand,
-} from '../../utils/prompt-response-parser';
-
-type TabType = 'optimized' | 'command' | 'compare';
+import { extractCommand, formatOptimizedPrompt } from '../../utils/prompt-response-parser';
+import { useBilingualLanguageToggleState } from '../../hooks/use-bilingual-language-toggle-state';
+import type {
+  OptimizerDisplayMode,
+  OptimizerPreviewMode,
+  OutputLanguageMode,
+} from '../../types/prompt-optimizer-multilingual';
 
 interface OptimizedResultViewProps {
   result: ParsedPromptResult;
   originalInput: string;
+  compareMode?: boolean;
+  outputLanguageMode: OutputLanguageMode;
+  displayMode: OptimizerDisplayMode;
+  previewMode: OptimizerPreviewMode;
+}
+
+interface PromptDiff {
+  added: string[];
+  removed: string[];
+}
+
+function computePromptDiff(originalPrompt: string, optimizedPrompt: string): PromptDiff {
+  const originalLines = originalPrompt.split('\n').map((line) => line.trim()).filter(Boolean);
+  const optimizedLines = optimizedPrompt.split('\n').map((line) => line.trim()).filter(Boolean);
+  const originalSet = new Set(originalLines);
+  const optimizedSet = new Set(optimizedLines);
+
+  return {
+    added: optimizedLines.filter((line) => !originalSet.has(line)),
+    removed: originalLines.filter((line) => !optimizedSet.has(line)),
+  };
+}
+
+function HighlightedBlock({ content }: { content: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3">
+      <SyntaxHighlighter
+        language="markdown"
+        style={oneLight}
+        customStyle={{
+          margin: 0,
+          borderRadius: '0.5rem',
+          fontSize: '0.82rem',
+          lineHeight: '1.6',
+          background: 'transparent',
+          padding: 0,
+        }}
+        codeTagProps={{ style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' } }}
+      >
+        {content}
+      </SyntaxHighlighter>
+    </div>
+  );
+}
+
+function buildCopyBothMarkdown(englishPrompt: string, vietnamesePrompt: string): string {
+  return `## English Prompt\n${englishPrompt}\n\n## Vietnamese Prompt\n${vietnamesePrompt}`;
+}
+
+function languageLabel(code: 'en' | 'vi'): string {
+  return code === 'en' ? 'English' : 'Tiếng Việt';
 }
 
 export const OptimizedResultView: React.FC<OptimizedResultViewProps> = ({
   result,
   originalInput,
+  compareMode = false,
+  outputLanguageMode,
+  displayMode,
+  previewMode,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('optimized');
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const { t } = useBilingualLanguageToggleState();
+  const [copiedType, setCopiedType] = useState<'en' | 'vi' | 'both' | null>(null);
+  const [tabLanguage, setTabLanguage] = useState<'en' | 'vi'>('en');
 
-  const handleCopy = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    toast.success('Đã sao chép');
-    setTimeout(() => setCopiedField(null), 2000);
+  const optimizedPromptEn = useMemo(
+    () => formatOptimizedPrompt(result.optimizedPromptEn || result.optimizedPrompt || ''),
+    [result.optimizedPrompt, result.optimizedPromptEn],
+  );
+
+  const optimizedPromptVi = useMemo(
+    () => formatOptimizedPrompt(result.optimizedPromptVi || result.optimizedPrompt || ''),
+    [result.optimizedPrompt, result.optimizedPromptVi],
+  );
+
+  const hasBilingualResult = optimizedPromptEn.length > 0 && optimizedPromptVi.length > 0;
+  const command = useMemo(() => extractCommand(result.suggestedCommand), [result.suggestedCommand]);
+
+  const primaryPrompt = useMemo(() => {
+    if (outputLanguageMode === 'vi') {
+      return optimizedPromptVi || optimizedPromptEn;
+    }
+    return optimizedPromptEn || optimizedPromptVi;
+  }, [optimizedPromptEn, optimizedPromptVi, outputLanguageMode]);
+
+  const comparePrompt = useMemo(() => {
+    if (previewMode === 'english') {
+      return optimizedPromptEn || optimizedPromptVi;
+    }
+    return primaryPrompt;
+  }, [optimizedPromptEn, optimizedPromptVi, previewMode, primaryPrompt]);
+
+  const diff = useMemo(() => computePromptDiff(originalInput, comparePrompt), [originalInput, comparePrompt]);
+
+  const copyText = async (type: 'en' | 'vi' | 'both') => {
+    const copyPayload =
+      type === 'en'
+        ? optimizedPromptEn
+        : type === 'vi'
+          ? optimizedPromptVi
+          : buildCopyBothMarkdown(optimizedPromptEn, optimizedPromptVi);
+
+    if (!copyPayload.trim()) {
+      toast.error('Không có nội dung để sao chép');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(copyPayload);
+      setCopiedType(type);
+      toast.success(t('optimizer.copy.done', 'Đã sao chép!'));
+      window.setTimeout(() => setCopiedType(null), 1800);
+    } catch {
+      toast.error('Không thể sao chép vào clipboard');
+    }
   };
 
-  const handleUseInChat = () => {
-    const promptToStore =
-      activeTab === 'optimized'
-        ? formatOptimizedPrompt(result.optimizedPrompt)
-        : activeTab === 'command'
-          ? extractCommand(result.suggestedCommand)
-          : formatOptimizedPrompt(result.optimizedPrompt);
-
-    storePromptForChat(promptToStore);
-    toast.success('Đã lưu prompt. Chuyển về trang chủ...');
-
-    // Redirect to home page after a short delay
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
-  };
-
-  const tabs = [
-    { id: 'optimized' as TabType, label: 'Optimized', icon: FileText },
-    { id: 'command' as TabType, label: 'Command', icon: Terminal },
-    { id: 'compare' as TabType, label: 'Compare', icon: GitCompare },
-  ];
-
-  const renderOptimizedTab = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-300">Prompt đã tối ưu</h4>
-        <button
-          onClick={() => handleCopy(formatOptimizedPrompt(result.optimizedPrompt), 'optimized')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-all text-sm"
-        >
-          {copiedField === 'optimized' ? (
-            <>
-              <Check className="w-4 h-4" />
-              <span>Đã copy</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              <span>Copy Prompt</span>
-            </>
-          )}
-        </button>
-      </div>
-      <div className="rounded-xl bg-gray-950/50 border border-gray-700/50 p-4">
-        <SyntaxHighlighter
-          language="markdown"
-          style={vscDarkPlus}
-          customStyle={{
-            margin: 0,
-            padding: 0,
-            background: 'transparent',
-            fontSize: '0.875rem',
-            lineHeight: '1.6',
-          }}
-        >
-          {formatOptimizedPrompt(result.optimizedPrompt)}
-        </SyntaxHighlighter>
-      </div>
-    </div>
-  );
-
-  const renderCommandTab = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-300">Command đề xuất</h4>
-        <button
-          onClick={() => handleCopy(extractCommand(result.suggestedCommand), 'command')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-all text-sm"
-        >
-          {copiedField === 'command' ? (
-            <>
-              <Check className="w-4 h-4" />
-              <span>Đã copy</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              <span>Copy Command</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Command Code Block */}
-      <div className="rounded-xl bg-gray-950/50 border border-purple-500/30 p-4">
-        <SyntaxHighlighter
-          language="bash"
-          style={vscDarkPlus}
-          customStyle={{
-            margin: 0,
-            padding: 0,
-            background: 'transparent',
-            fontSize: '0.875rem',
-            lineHeight: '1.6',
-          }}
-        >
-          {extractCommand(result.suggestedCommand)}
-        </SyntaxHighlighter>
-      </div>
-
-      {/* Explanation */}
-      {result.explanation && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Giải thích</h4>
-          <p className="text-sm text-gray-300 leading-relaxed">{result.explanation}</p>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderCompareTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Original */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-400 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-gray-500" />
-            Original
-          </h4>
-          <div className="rounded-xl bg-gray-950/50 border border-gray-700/50 p-4">
-            <p className="text-sm text-gray-400 whitespace-pre-wrap">{originalInput}</p>
-          </div>
-        </div>
-
-        {/* Optimized */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-green-400 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            Optimized
-          </h4>
-          <div className="rounded-xl bg-gray-950/50 border border-green-500/30 p-4">
-            <SyntaxHighlighter
-              language="markdown"
-              style={vscDarkPlus}
-              customStyle={{
-                margin: 0,
-                padding: 0,
-                background: 'transparent',
-                fontSize: '0.875rem',
-                lineHeight: '1.6',
-              }}
-            >
-              {formatOptimizedPrompt(result.optimizedPrompt)}
-            </SyntaxHighlighter>
-          </div>
-        </div>
-      </div>
-
-      {/* Improvements Summary */}
-      <div className="mt-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-        <h4 className="text-sm font-medium text-blue-300 mb-2">Cải thiện</h4>
-        <ul className="text-sm text-gray-300 space-y-1">
-          <li className="flex items-start gap-2">
-            <span className="text-green-400">+</span>
-            <span>Thêm context rõ ràng và yêu cầu cụ thể</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-green-400">+</span>
-            <span>Chỉ định output format và constraints</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-green-400">+</span>
-            <span>Gợi ý command phù hợp cho workflow</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
+  const shouldRenderBilingual = hasBilingualResult && previewMode === 'bilingual';
+  const singlePromptLanguage = outputLanguageMode === 'vi' ? 'vi' : 'en';
+  const singlePrompt = singlePromptLanguage === 'vi' ? optimizedPromptVi || optimizedPromptEn : optimizedPromptEn || optimizedPromptVi;
 
   return (
-    <div className="rounded-xl border border-gray-700/50 bg-gray-900/70 backdrop-blur-xl overflow-hidden">
-      {/* Tab Headers */}
-      <div className="flex border-b border-gray-700/50">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
+    <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-soft)]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--app-text)]">
+          {compareMode ? <GitCompare className="h-4.5 w-4.5 text-[var(--accent)]" /> : <Sparkles className="h-4.5 w-4.5 text-[var(--accent)]" />}
+          <span>{compareMode ? 'Compare Mode' : 'Prompt đã tối ưu'}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void copyText('en')}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--app-text)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,var(--app-surface))]"
+          >
+            {copiedType === 'en' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span>{copiedType === 'en' ? 'Copied EN' : 'Copy EN'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void copyText('vi')}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-xs font-semibold text-[var(--app-text)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,var(--app-surface))]"
+          >
+            {copiedType === 'vi' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span>{copiedType === 'vi' ? 'Copied VI' : 'Copy VI'}</span>
+          </button>
+          {hasBilingualResult && (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'text-blue-300 border-b-2 border-blue-500 bg-blue-500/10'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
-              }`}
+              type="button"
+              onClick={() => void copyText('both')}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--accent)_13%,var(--app-surface))] px-3 py-2 text-xs font-semibold text-[var(--app-text)] hover:bg-[color-mix(in_srgb,var(--accent)_22%,var(--app-surface))]"
             >
-              <Icon className="w-4 h-4" />
-              {tab.label}
+              {copiedType === 'both' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <span>{copiedType === 'both' ? 'Copied Both' : 'Copy Both'}</span>
             </button>
-          );
-        })}
+          )}
+        </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="p-4">
-        {activeTab === 'optimized' && renderOptimizedTab()}
-        {activeTab === 'command' && renderCommandTab()}
-        {activeTab === 'compare' && renderCompareTab()}
-      </div>
+      {compareMode ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">
+                Original
+              </p>
+              <HighlightedBlock content={originalInput || '(Trống)'} />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">
+                Optimized ({languageLabel(previewMode === 'english' ? 'en' : singlePromptLanguage)})
+              </p>
+              <HighlightedBlock content={comparePrompt || '(Trống)'} />
+            </div>
+          </div>
 
-      {/* Action Bar */}
-      <div className="border-t border-gray-700/50 p-4 flex items-center justify-between">
-        <p className="text-xs text-gray-500">
-          Sử dụng prompt đã tối ưu để có kết quả tốt hơn với Claude Code
-        </p>
-        <button
-          onClick={handleUseInChat}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium hover:opacity-90 transition-opacity"
-        >
-          <MessageSquare className="w-4 h-4" />
-          Use in Chat
-        </button>
-      </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-rose-300/45 bg-rose-50/80 p-3 dark:border-rose-900/55 dark:bg-rose-950/35">
+              <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-200">
+                Removed
+              </p>
+              {diff.removed.length === 0 ? (
+                <p className="mt-1 text-sm text-rose-700/80 dark:text-rose-200/85">Không có dòng bị bỏ.</p>
+              ) : (
+                <ul className="mt-2 space-y-1 text-sm text-rose-700 dark:text-rose-200">
+                  {diff.removed.map((line) => (
+                    <li key={`removed-${line}`} className="rounded-md bg-rose-100 px-2 py-1 dark:bg-rose-900/55">
+                      - {line}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-emerald-300/45 bg-emerald-50/80 p-3 dark:border-emerald-900/55 dark:bg-emerald-950/35">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+                Added
+              </p>
+              {diff.added.length === 0 ? (
+                <p className="mt-1 text-sm text-emerald-700/80 dark:text-emerald-200/85">Không có dòng mới.</p>
+              ) : (
+                <ul className="mt-2 space-y-1 text-sm text-emerald-700 dark:text-emerald-200">
+                  {diff.added.map((line) => (
+                    <li key={`added-${line}`} className="rounded-md bg-emerald-100 px-2 py-1 dark:bg-emerald-900/55">
+                      + {line}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {shouldRenderBilingual ? (
+            <>
+              {displayMode === 'side-by-side' && (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">English</p>
+                    <HighlightedBlock content={optimizedPromptEn || '(Trống)'} />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">Tiếng Việt</p>
+                    <HighlightedBlock content={optimizedPromptVi || '(Trống)'} />
+                  </div>
+                </div>
+              )}
+
+              {displayMode === 'tab-toggle' && (
+                <div className="space-y-3">
+                  <div className="inline-flex rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-1">
+                    <button
+                      type="button"
+                      onClick={() => setTabLanguage('en')}
+                      className={`min-h-10 rounded-lg px-3 py-2 text-xs font-semibold ${
+                        tabLanguage === 'en'
+                          ? 'bg-[color-mix(in_srgb,var(--accent)_16%,var(--app-surface))] text-[var(--app-text)]'
+                          : 'text-[var(--app-text-muted)]'
+                      }`}
+                    >
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTabLanguage('vi')}
+                      className={`min-h-10 rounded-lg px-3 py-2 text-xs font-semibold ${
+                        tabLanguage === 'vi'
+                          ? 'bg-[color-mix(in_srgb,var(--accent)_16%,var(--app-surface))] text-[var(--app-text)]'
+                          : 'text-[var(--app-text-muted)]'
+                      }`}
+                    >
+                      Tiếng Việt
+                    </button>
+                  </div>
+                  <HighlightedBlock content={tabLanguage === 'en' ? optimizedPromptEn : optimizedPromptVi} />
+                </div>
+              )}
+
+              {displayMode === 'inline-translation' && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">English</p>
+                    <HighlightedBlock content={optimizedPromptEn || '(Trống)'} />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">Tiếng Việt</p>
+                    <HighlightedBlock content={optimizedPromptVi || '(Trống)'} />
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">
+                {singlePromptLanguage === 'vi' ? 'Tiếng Việt' : 'English'}
+              </p>
+              <HighlightedBlock content={singlePrompt || '(Không có nội dung)'} />
+            </div>
+          )}
+
+          <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">
+              Command đề xuất
+            </p>
+            <code className="mt-1 block text-sm font-semibold text-[var(--accent)]">{command}</code>
+          </div>
+
+          {result.explanation && (
+            <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--app-text-muted)]">
+                Lý do
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--app-text)]">{result.explanation}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

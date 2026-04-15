@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { generateId } from "../../lib/utils";
 import { getToolDefinitions, executeTool } from "../../lib/tools/tool-registry";
 import type { ToolCall, ToolResult } from "../../lib/tools/tool-system-types";
+import { appendChunkAndExtractSseEvents, extractDataPayloadFromSseEvent } from "../../utils/sse-event-parser";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool";
@@ -213,20 +214,17 @@ export const POST: APIRoute = async ({ request }) => {
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-              console.log("[API /chat] Stream complete, chunks received:", chunkCount);
-              break;
-            }
+            const decodedChunk = value ? decoder.decode(value, { stream: !done }) : decoder.decode();
+            const parsedChunk = appendChunkAndExtractSseEvents(buffer, decodedChunk);
+            const eventsToProcess = done && parsedChunk.remainder.trim().length > 0
+              ? [...parsedChunk.events, parsedChunk.remainder]
+              : parsedChunk.events;
+            buffer = done ? "" : parsedChunk.remainder;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
+            for (const eventBlock of eventsToProcess) {
+              const data = extractDataPayloadFromSseEvent(eventBlock);
+              if (!data) continue;
 
-            for (const line of lines) {
-              if (line.trim() === "" || !line.startsWith("data: ")) continue;
-              chunkCount++;
-
-              const data = line.slice(6);
               if (data === "[DONE]") {
                 console.log("[API /chat] Received [DONE] signal");
                 // Convert accumulating tool calls to final ToolCall[]
@@ -316,16 +314,18 @@ export const POST: APIRoute = async ({ request }) => {
 
                     while (true) {
                       const { done: finalDone, value: finalValue } = await finalReader.read();
-                      if (finalDone) break;
+                      const decodedFinalChunk = finalValue
+                        ? decoder.decode(finalValue, { stream: !finalDone })
+                        : decoder.decode();
+                      const parsedFinalChunk = appendChunkAndExtractSseEvents(finalBuffer, decodedFinalChunk);
+                      const finalEventsToProcess = finalDone && parsedFinalChunk.remainder.trim().length > 0
+                        ? [...parsedFinalChunk.events, parsedFinalChunk.remainder]
+                        : parsedFinalChunk.events;
+                      finalBuffer = finalDone ? "" : parsedFinalChunk.remainder;
 
-                      finalBuffer += decoder.decode(finalValue, { stream: true });
-                      const finalLines = finalBuffer.split("\n");
-                      finalBuffer = finalLines.pop() || "";
-
-                      for (const finalLine of finalLines) {
-                        if (finalLine.trim() === "" || !finalLine.startsWith("data: ")) continue;
-
-                        const finalData = finalLine.slice(6);
+                      for (const finalEventBlock of finalEventsToProcess) {
+                        const finalData = extractDataPayloadFromSseEvent(finalEventBlock);
+                        if (!finalData) continue;
                         if (finalData === "[DONE]") continue;
 
                         try {
@@ -341,6 +341,8 @@ export const POST: APIRoute = async ({ request }) => {
                           // Skip invalid JSON
                         }
                       }
+
+                      if (finalDone) break;
                     }
                   }
                 }
@@ -434,6 +436,11 @@ export const POST: APIRoute = async ({ request }) => {
                 // Skip invalid JSON but log for debugging
                 console.log("[API /chat] JSON parse error:", e, "for data:", data.slice(0, 100));
               }
+            }
+
+            if (done) {
+              console.log("[API /chat] Stream complete, chunks received:", chunkCount);
+              break;
             }
           }
         } catch (error) {

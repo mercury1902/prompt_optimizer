@@ -69,7 +69,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'UI/UX',
     description: 'Design a complete page layout',
     content:
-      'Design a [page name] page with: header, main content area, sidebar (optional), and footer. Use the existing color scheme (gray-900/gray-800/blue-500/purple-500), glassmorphism effects, and responsive breakpoints.',
+      'Design a [page name] page with: header, main content area, sidebar (optional), and footer. Use the existing color scheme (gray-900/gray-800 + brand accent only), glassmorphism effects, and responsive breakpoints.',
   },
   {
     id: 'ui-animation',

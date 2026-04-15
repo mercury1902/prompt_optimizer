@@ -1,6 +1,15 @@
 ---
 import "../styles/global.css";
 import { Toaster } from "sonner";
+import { APP_LANGUAGE_STORAGE_KEY } from "../lib/bilingual-language-toggle-translations";
+
+interface LayoutProps {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'ClaudeKit Chat', description = 'ClaudeKit Prompt Optimizer and command guide' } =
+  Astro.props as LayoutProps;
 ---
 
 <!doctype html>
@@ -8,10 +17,37 @@ import { Toaster } from "sonner";
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>ClaudeKit Chat</title>
+    <title>{title}</title>
+    <slot name="head" />
+    <script is:inline>
+      {
+        `
+        (() => {
+          try {
+            const value = window.localStorage.getItem("${APP_LANGUAGE_STORAGE_KEY}");
+            if (value === "en" || value === "vi") {
+              document.documentElement.lang = value;
+            }
+          } catch {
+            // Ignore storage failures.
+          }
+        })();
+      `
+      }
+    </script>
+    <style is:inline>
+      html[lang='vi'] [data-i18n='en'] {
+        display: none !important;
+      }
+
+      html[lang='en'] [data-i18n='vi'] {
+        display: none !important;
+      }
+    </style>
   </head>
-  <body class="bg-[#1e1e1e] text-gray-100 min-h-screen">
+  <body class="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] antialiased">
     <slot />
     <Toaster
       position="top-right"

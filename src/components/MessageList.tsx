@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy neutral-theme message list.
+ * Fully deprecated in favor of chat/message-bubble components.
+ */
+
 import { useEffect, useRef } from 'react';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';

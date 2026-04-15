@@ -6,9 +6,16 @@ import { MessageReactionsContainer } from './message-reactions-container';
 interface MessageBubbleAssistantProps {
   content: string;
   messageId?: string;
+  isTyping?: boolean;
+  timestampLabel?: string;
 }
 
-export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ content, messageId }) => {
+export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({
+  content,
+  messageId,
+  isTyping = false,
+  timestampLabel,
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -25,43 +32,64 @@ export const MessageBubbleAssistant: React.FC<MessageBubbleAssistantProps> = ({ 
   };
 
   return (
-    <div className="group/message flex gap-3 py-4 px-4 relative">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-        <Bot className="w-4 h-4 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm text-gray-100">ClaudeKit</span>
-          <span className="text-xs text-gray-500">Trợ lý AI</span>
-          <Sparkles className="w-3 h-3 text-purple-400" />
+    <div className="group/message message-enter px-4 py-3 sm:px-8 md:px-10">
+      <div className="mx-auto flex w-full max-w-[768px] items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--accent)] shadow-[var(--app-shadow-soft)]">
+          <Bot className="h-4 w-4" />
         </div>
-        <div className="relative">
-          <div className="bg-gray-800/80 backdrop-blur-md border border-gray-700/50 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[90%]">
-            <div className="text-gray-200 leading-relaxed whitespace-pre-wrap">{content}</div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-sm font-semibold text-[var(--app-text)]">ClaudeKit</span>
+            <span className="text-[13px] text-[var(--app-text-muted)]">Trợ lý AI</span>
+            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
           </div>
-          {/* Actions - MOBILE: below, DESKTOP: overlay */}
-          <div className="
-            flex items-center gap-1 mt-2
-            md:mt-0 md:absolute md:-top-2 md:right-0
-            opacity-100 md:opacity-0
-            md:group-hover/message:opacity-100
-            transition-opacity duration-200
-          ">
-            <div className="flex items-center gap-1 bg-gray-800/95 md:backdrop-blur-md md:border md:border-gray-700/50 md:rounded-lg md:shadow-xl p-1">
-              <button
-                onClick={handleCopy}
-                className="p-2 md:p-1.5 hover:bg-gray-700/50 rounded-md transition-colors"
-                title="Sao chép tin nhắn"
-              >
-                {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
-              </button>
-              <button className="p-2 md:p-1.5 hover:bg-gray-700/50 rounded-md transition-colors" title="Tạo lại">
-                <RefreshCw className="w-4 h-4 text-gray-400" />
-              </button>
+          <div className="relative max-w-[min(100%,680px)] rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-5 py-4 text-[15px] leading-7 text-[var(--app-text)] shadow-[var(--app-shadow-soft)] transition-colors duration-200 group-hover/message:bg-[color-mix(in_srgb,var(--app-surface)_92%,var(--app-surface-muted))]">
+            {isTyping ? (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="optimizer-skeleton-shimmer h-3 w-2/3 rounded-full" />
+                  <div className="optimizer-skeleton-shimmer h-3 w-full rounded-full" />
+                  <div className="optimizer-skeleton-shimmer h-3 w-4/5 rounded-full" />
+                </div>
+                <div className="flex items-center gap-1.5 text-[13px] text-[var(--app-text-muted)]">
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)] [animation-delay:0ms]" />
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)] [animation-delay:120ms]" />
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)] [animation-delay:240ms]" />
+                  <span className="ml-1">Đang trả lời...</span>
+                </div>
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap break-words">{content}</div>
+            )}
+          </div>
+          {!isTyping && content.trim().length > 0 && (
+            <div className="mt-2 flex items-center gap-1 opacity-100 transition-opacity duration-200 md:mt-0 md:absolute md:-top-2 md:right-0 md:opacity-0 md:group-hover/message:opacity-100">
+              <div className="flex items-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-[var(--app-shadow-soft)]">
+                <button
+                  onClick={handleCopy}
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+                  title="Sao chép tin nhắn"
+                  aria-label="Sao chép phản hồi"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                </button>
+                <button
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+                  title="Tạo lại"
+                  aria-label="Tạo lại phản hồi"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+          {timestampLabel && (
+            <span className="mt-2 block text-[13px] text-[var(--app-text-muted)]">
+              {timestampLabel}
+            </span>
+          )}
+          {messageId && <MessageReactionsContainer messageId={messageId} />}
         </div>
-        {messageId && <MessageReactionsContainer messageId={messageId} />}
       </div>
     </div>
   );

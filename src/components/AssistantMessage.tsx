@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy neutral-theme assistant bubble.
+ * Fully deprecated in favor of `chat/message-bubble-assistant-with-actions`.
+ */
+
 import { Bot } from 'lucide-react';
 import { MessageContent } from './MessageContent';
 import { TypingIndicator } from './TypingIndicator';

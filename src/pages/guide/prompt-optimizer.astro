@@ -1,67 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { PromptOptimizerChat } from '../../components/command-guide/prompt-optimizer-chat';
-import { Sparkles, ArrowLeft, Zap } from 'lucide-react';
+import { PromptOptimizerResponsiveWorkspaceWithAdaptiveNavigation } from '../../components/command-guide/prompt-optimizer-responsive-workspace-with-adaptive-navigation';
 ---
 
-<Layout title="Prompt Optimizer" description="Tối ưu hóa prompt với AI - biến prompt thô thành prompt chuyên nghiệp">
-  <main class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-    <section class="py-8 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-5xl mx-auto">
-        {/* Back Link */}
-        <a
-          href="/guide/"
-          class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại Command Guide
-        </a>
+<Layout
+  title="Prompt Optimizer | ClaudeKit"
+  description="Prompt Optimizer chính thức của ClaudeKit với lịch sử ngữ cảnh và compare mode."
+>
+  <Fragment slot="head">
+    <link rel="canonical" href="/guide/prompt-optimizer" />
+  </Fragment>
 
-        {/* Header */}
-        <div class="flex items-center gap-4 mb-6">
-          <div class="p-3 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            <Sparkles className="w-8 h-8" />
-          </div>
-          <div>
-            <h1 class="text-3xl font-bold text-white">Prompt Optimizer</h1>
-            <p class="text-gray-400">Biến prompt thô thành prompt chuyên nghiệp cho vibe coding</p>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-900/70 border border-gray-700/50 backdrop-blur-sm">
-            <div class="p-2 rounded-lg bg-blue-500/20 text-blue-300">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <p class="font-medium text-white">Tối ưu tức thì</p>
-              <p class="text-sm text-gray-400">AI phân tích và cải thiện prompt ngay</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-900/70 border border-gray-700/50 backdrop-blur-sm">
-            <div class="p-2 rounded-lg bg-purple-500/20 text-purple-300">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <p class="font-medium text-white">Gợi ý command</p>
-              <p class="text-sm text-gray-400">Đề xuất command phù hợp cho prompt</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-900/70 border border-gray-700/50 backdrop-blur-sm">
-            <div class="p-2 rounded-lg bg-green-500/20 text-green-300">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <p class="font-medium text-white">Vibe coding ready</p>
-              <p class="text-sm text-gray-400">Prompt chuẩn cho Claude Code</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Interface */}
-        <PromptOptimizerChat client:load />
-      </div>
-    </section>
-  </main>
+  <PromptOptimizerResponsiveWorkspaceWithAdaptiveNavigation client:load />
 </Layout>
