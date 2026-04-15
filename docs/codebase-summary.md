@@ -1,8 +1,11 @@
 # Codebase Summary
 
-**Generated:** 2026-04-07  
-**Total Files:** 50+ source files  
-**Total Lines:** 3,502+ (lib modules only)
+**Generated:** 2026-04-15  
+**Version:** 0.0.2  
+**Total Components:** 46 React components  
+**Library Modules:** 28  
+**Test Files:** 27  
+**Total Source Files:** 80+
 
 ---
 
@@ -11,56 +14,60 @@
 ```
 D:/project/Clone/ck/claudekit-chatbot-astro/
 ├── src/
-│   ├── components/           # 39 React components
-│   │   ├── chat/            # 8 glassmorphism chat components
+│   ├── components/           # 46 React components
+│   │   ├── chat/            # 14 glassmorphism chat components
 │   │   ├── command-browser/ # 4 command browser components
-│   │   ├── command-guide/   # 5 command guide components
+│   │   ├── command-guide/   # 6 command guide components
 │   │   ├── shared/          # 3 shared UI components
-│   │   ├── ui/              # 5 UI/UX enhancement components
+│   │   ├── ui/              # 4 UI/UX enhancement components
 │   │   ├── workflow/        # 3 workflow components
-│   │   └── *.tsx            # 11 core chat components
+│   │   ├── _deprecated/     # Legacy components
+│   │   └── *.tsx            # 12 core chat components
 │   ├── contexts/            # 1 context (ChatContext)
 │   ├── data/                # 2 data files (commands, catalog)
-│   ├── hooks/               # 5 custom hooks
-│   ├── lib/                 # 23 library modules
+│   ├── hooks/               # 8 custom hooks
+│   ├── lib/                 # 28 library modules
 │   │   ├── db/              # 3 database modules
 │   │   └── tools/           # 8 tool system modules
 │   ├── middleware/          # 1 security middleware stub
-│   ├── pages/               # 5 Astro pages + 4 API routes
+│   ├── pages/               # 5 Astro pages + 5 API routes
 │   ├── styles/              # 1 global CSS file
 │   └── types/               # 2 TypeScript definition files
-├── docs/                    # Documentation
+├── docs/                    # Documentation (10 files)
 ├── plans/                   # Plans and reports
 ├── public/                  # Static assets
-├── tests/                   # Test files
+├── tests/                   # 27 test files
+├── e2e/                     # E2E tests (Playwright)
 ├── .env.example             # Environment template
 ├── astro.config.mjs         # Astro configuration
 ├── package.json             # Dependencies
 ├── tsconfig.json            # TypeScript config
-└── vitest.config.ts         # Vitest configuration
+├── vitest.config.ts         # Vitest configuration
+└── playwright.config.ts     # Playwright configuration
 ```
 
 ---
 
-## Component Inventory (39 Total)
+## Component Inventory (46 Total)
 
-### 1. Core Chat Components (11)
+### 1. Core Chat Components (12)
 
-| Component | Purpose | Lines | Location |
-|-----------|---------|-------|----------|
-| ChatBot.tsx | Main chat interface | ~150 | src/components/ |
-| ChatContainer.tsx | Chat state container | ~50 | src/components/ |
-| ChatInput.tsx | Auto-resize textarea input | ~60 | src/components/ |
-| MessageList.tsx | Message list with auto-scroll | ~50 | src/components/ |
-| UserMessage.tsx | User message bubble | ~30 | src/components/ |
-| AssistantMessage.tsx | Assistant message with typing indicator | ~40 | src/components/ |
-| MessageContent.tsx | Markdown + code rendering | ~70 | src/components/ |
-| CodeBlock.tsx | Syntax highlighted code | ~50 | src/components/ |
-| TypingIndicator.tsx | Animated typing dots | ~20 | src/components/ |
-| ToolCallVisualizer.tsx | Tool execution display | ~80 | src/components/ |
-| ToolResultDisplay.tsx | Tool results (search/code) | ~90 | src/components/ |
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| ChatBot.tsx | Main chat interface | src/components/ |
+| ChatContainer.tsx | Chat state container | src/components/ |
+| ChatInput.tsx | Auto-resize textarea input | src/components/ |
+| MessageList.tsx | Message list with auto-scroll | src/components/ |
+| UserMessage.tsx | User message bubble | src/components/ |
+| AssistantMessage.tsx | Assistant message with typing indicator | src/components/ |
+| MessageContent.tsx | Markdown + code rendering | src/components/ |
+| CodeBlock.tsx | Syntax highlighted code | src/components/ |
+| TypingIndicator.tsx | Animated typing dots | src/components/ |
+| ToolCallVisualizer.tsx | Tool execution display | src/components/ |
+| ToolResultDisplay.tsx | Tool results (search/code) | src/components/ |
+| index.ts | Component exports | src/components/ |
 
-### 2. Glassmorphism Chat Components (8)
+### 2. Glassmorphism Chat Components (14)
 
 | Component | Purpose | Location |
 |-----------|---------|----------|
@@ -72,6 +79,15 @@ D:/project/Clone/ck/claudekit-chatbot-astro/
 | chat-header-with-status.tsx | Status header | src/components/chat/ |
 | command-palette-with-cmdk.tsx | Command palette | src/components/chat/ |
 | code-block-with-copy-button.tsx | Copy-enabled code | src/components/chat/ |
+| vertical-navigation-sidebar.tsx | Vertical sidebar nav | src/components/chat/ |
+| virtualized-chat-message-list.tsx | Virtualized message list | src/components/chat/ |
+| empty-state-with-suggestions.tsx | Empty state UI | src/components/chat/ |
+| history-panel-wireframe.tsx | History panel | src/components/chat/ |
+| error-banner-with-retry.tsx | Error banner | src/components/chat/ |
+| scroll-to-bottom-button.tsx | Scroll button | src/components/chat/ |
+| message-reactions-container.tsx | Reaction container | src/components/chat/ |
+| message-reaction-button.tsx | Reaction button | src/components/chat/ |
+| conversation-export-modal.tsx | Export modal | src/components/chat/ |
 
 ### 3. Command Browser Components (4)
 
@@ -82,7 +98,7 @@ D:/project/Clone/ck/claudekit-chatbot-astro/
 | command-usage-examples-with-variants.tsx | Usage examples | src/components/command-browser/ |
 | related-commands-suggestions.tsx | Related suggestions | src/components/command-browser/ |
 
-### 4. Command Guide Components (5)
+### 4. Command Guide Components (6)
 
 | Component | Purpose | Location |
 |-----------|---------|----------|
@@ -90,16 +106,18 @@ D:/project/Clone/ck/claudekit-chatbot-astro/
 | decision-tree-with-recommendations.tsx | Interactive decision tree | src/components/command-guide/ |
 | prompt-optimizer-chat.tsx | Prompt optimizer UI | src/components/command-guide/ |
 | optimized-prompt-result-view.tsx | Results display | src/components/command-guide/ |
+| prompt-optimizer-history-panel.tsx | History panel | src/components/command-guide/ |
+| prompt-optimizer-conversation-context.tsx | Conversation context | src/components/command-guide/ |
+| prompt-optimizer-responsive-workspace-with-adaptive-navigation.tsx | Responsive workspace | src/components/command-guide/ |
 | prompt-templates.ts | 14 template definitions | src/components/command-guide/ |
 
-### 5. UI/UX Enhancement Components (5)
+### 5. UI/UX Enhancement Components (4)
 
 | Component | Purpose | Location |
 |-----------|---------|----------|
 | favorite-button-with-toggle-animation.tsx | Animated favorite button | src/components/ui/ |
 | skeleton-loader-for-command-cards.tsx | Loading skeletons | src/components/ui/ |
 | toast-notification-system.tsx | Toast notifications | src/components/ui/ |
-| quick-access-sidebar-with-tabs.tsx | Favorites/Recents sidebar | src/components/ui/ |
 | enhanced-typing-indicator-with-dots-animation.tsx | Typing animations | src/components/ui/ |
 
 ### 6. Workflow Components (3)
@@ -120,56 +138,66 @@ D:/project/Clone/ck/claudekit-chatbot-astro/
 
 ---
 
-## Library Modules (23 Total)
+## Library Modules (28 Total)
 
-### 1. Core AI/LLM Client (4 modules, 779 lines)
+### 1. Core AI/LLM Client (4 modules)
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| firepass-client.ts | Fireworks AI client | 511 |
-| vision-client.ts | Image analysis | 173 |
-| multi-provider-fallback-with-circuit-breaker.ts | Provider failover | 48 |
-| prompt-cache-with-lru-and-ttl.ts | Result caching | 47 |
+| Module | Purpose |
+|--------|---------|
+| firepass-client.ts | Fireworks AI client |
+| vision-client.ts | Image analysis |
+| multi-provider-fallback-with-circuit-breaker.ts | Provider failover |
+| prompt-cache-with-lru-and-ttl.ts | Result caching |
 
-### 2. Recommendation Engines (5 modules, 1,214 lines)
+### 2. Recommendation Engines (5 modules)
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| command-recommender.ts | Intent detection | 218 |
-| workflow-recommendation-engine.ts | Workflow matching | 141 |
-| workflows.ts | 18 workflow definitions | 621 |
-| command-filtering-by-kit-and-keywords.ts | Command filtering | 92 |
-| workflow-filtering-by-complexity-and-search.ts | Workflow filtering | 142 |
+| Module | Purpose |
+|--------|---------|
+| command-recommender.ts | Intent detection |
+| workflow-recommendation-engine.ts | Workflow matching |
+| workflows.ts | 18 workflow definitions |
+| command-filtering-by-kit-and-keywords.ts | Command filtering |
+| workflow-filtering-by-complexity-and-search.ts | Workflow filtering |
 
-### 3. Infrastructure (3 modules, 216 lines)
+### 3. Infrastructure (4 modules)
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| utils.ts | General utilities | 54 |
-| rate-limiter.ts | Rate limiting stub | 27 |
-| animation-variants-for-framer-motion.ts | Animation presets | 135 |
+| Module | Purpose |
+|--------|---------|
+| utils.ts | General utilities |
+| rate-limiter.ts | Rate limiting stub |
+| animation-variants-for-framer-motion.ts | Animation presets |
+| bilingual-language-toggle-translations.ts | Bilingual translations |
 
-### 4. Database Layer (3 modules, 455 lines)
+### 4. Database Layer (3 modules)
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| db/native-sqlite-database-client.ts | Native SQLite client | 194 |
-| db/schema.ts | TypeScript schemas | 109 |
-| db/index.ts | Database facade | 152 |
+| Module | Purpose |
+|--------|---------|
+| db/native-sqlite-database-client.ts | Native SQLite client |
+| db/schema.ts | TypeScript schemas |
+| db/index.ts | Database facade |
 
-### 5. Tool System (8 modules, 778 lines)
+### 5. Tool System (8 modules)
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| tools/tool-system-types.ts | Core type definitions | 50 |
-| tools/tool-registry-manager.ts | Tool registration | 96 |
-| tools/tavily-web-search-tool-implementation.ts | Web search tool | 100 |
-| tools/e2b-code-execution-tool-implementation.ts | Code execution tool | 133 |
-| tools/tool-registry.ts | Alternative registry | 98 |
-| tools/tavily-web-search-tool.ts | Alternative Tavily | 99 |
-| tools/e2b-code-execution-tool.ts | Alternative E2B | 133 |
-| tools/index.ts | Barrel exports | 33 |
-| tools/types.ts | Re-export types | 50 |
+| Module | Purpose |
+|--------|---------|
+| tools/tool-system-types.ts | Core type definitions |
+| tools/tool-registry-manager.ts | Tool registration |
+| tools/tavily-web-search-tool-implementation.ts | Web search tool |
+| tools/e2b-code-execution-tool-implementation.ts | Code execution tool |
+| tools/tool-registry.ts | Alternative registry |
+| tools/tavily-web-search-tool.ts | Alternative Tavily |
+| tools/e2b-code-execution-tool.ts | Alternative E2B |
+| tools/index.ts | Barrel exports |
+| tools/types.ts | Re-export types |
+
+### 6. Additional Modules (4 modules)
+
+| Module | Purpose |
+|--------|---------|
+| error-boundary-with-fallback-ui.tsx | Error boundary |
+| prompt-optimizer-conversation-context.tsx | Optimizer context |
+| prompt-optimizer-history.ts | History management |
+| session-manager-with-persistence.ts | Session management |
 
 ---
 

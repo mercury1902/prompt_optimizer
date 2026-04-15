@@ -1,7 +1,7 @@
 # Code Standards
 
-**Version:** 0.0.1  
-**Last Updated:** 2026-04-07
+**Version:** 0.0.2  
+**Last Updated:** 2026-04-15
 
 ---
 

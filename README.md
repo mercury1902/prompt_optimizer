@@ -1,6 +1,14 @@
 # ClaudeKit Chat - AI-Powered Claude Code Assistant
 
+[![Astro](https://img.shields.io/badge/Astro-6.1.3-BC52EE?logo=astro)](https://astro.build)
+[![React](https://img.shields.io/badge/React-19.2.4-61DAFB?logo=react)](https://react.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2.2-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
+[![Node.js](https://img.shields.io/badge/Node.js->=22.12.0-339933?logo=nodedotjs)](https://nodejs.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 AI-powered chatbot with prompt optimization, 62 ClaudeKit commands, and 18 predefined workflows. Built with Astro 6, React 19, and Tailwind CSS v4.
+
+[Live Demo](#) · [Documentation](./docs) · [Report Bug](../../issues) · [Request Feature](../../issues)
 
 ---
 
@@ -16,6 +24,24 @@ AI-powered chatbot with prompt optimization, 62 ClaudeKit commands, and 18 prede
 
 ---
 
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/claudekit-chatbot-astro.git
+cd claudekit-chatbot-astro
+
+# Install dependencies
+npm install
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your Fireworks API key
+
+# Start development server
+npm run dev
+```
+
 ## Features
 
 ### Core Chat
@@ -24,6 +50,9 @@ AI-powered chatbot with prompt optimization, 62 ClaudeKit commands, and 18 prede
 - **Bilingual Toggle**: Vietnamese/English UI switching with persisted preference
 - **Session Management**: Chat history with SQLite/PostgreSQL storage
 - **Favorites & Recent**: localStorage-backed command tracking
+- **Message Reactions**: Add reactions to messages
+- **Conversation Export**: Export chat history
+- **Virtualized List**: Performance-optimized message rendering
 
 ### UI Consistency
 - **Global Accent Policy**: Single brand-accent system across primary surfaces
@@ -53,77 +82,39 @@ AI-powered chatbot with prompt optimization, 62 ClaudeKit commands, and 18 prede
 
 ```
 src/
-├── components/
-│   ├── chat/                      # 8 glassmorphism chat components
-│   ├── command-guide/             # 5 command guide components
-│   ├── command-browser/             # 4 command browser components
-│   ├── workflow/                  # 3 workflow components
-│   ├── ui/                        # 5 UI/UX enhancement components
-│   ├── shared/                    # 3 shared UI components
-│   ├── ChatBot.tsx                # Main chat interface
-│   ├── ChatContainer.tsx          # Chat state container
-│   ├── ChatInput.tsx              # Auto-resize input
-│   ├── MessageList.tsx            # Message rendering
-│   └── ... (39 total components)
+├── components/          # 46 React components
+│   ├── chat/           # 14 chat components (glassmorphism)
+│   ├── command-guide/  # 6 command guide components
+│   ├── command-browser/# 4 command browser components
+│   ├── workflow/       # 3 workflow components
+│   ├── ui/             # 4 UI/UX enhancement components
+│   ├── shared/         # 3 shared UI components
+│   └── *.tsx           # 12 core chat components
 ├── contexts/
-│   └── ChatContext.tsx            # Global chat state (reducer pattern)
+│   └── ChatContext.tsx # Global chat state (reducer pattern)
 ├── data/
-│   ├── commands.ts                # 62 ClaudeKit commands
+│   ├── commands.ts     # 62 ClaudeKit commands
 │   └── claudekit-full-commands-catalog.ts
 ├── hooks/
-│   ├── useAstroChat.ts            # Streaming chat hook
-│   ├── use-command-search-with-debounce.ts
-│   ├── use-favorites-with-local-storage-persistence.ts
-│   └── use-recent-commands-with-session-history.ts
+│   ├── useAstroChat.ts # Streaming chat hook
+│   └── ... (8 total hooks)
 ├── lib/
 │   ├── firepass-client.ts         # Fireworks AI client
 │   ├── command-recommender.ts     # Intent detection
 │   ├── workflows.ts               # 18 workflow definitions
 │   ├── db/                        # Native SQLite database
-│   │   ├── native-sqlite-database-client.ts
-│   │   ├── schema.ts              # Drizzle-compatible types
-│   │   └── index.ts               # Database facade
 │   ├── tools/                     # Tool system (Tavily, E2B)
-│   └── ... (23 total modules)
+│   └── ... (28 total modules)
 ├── pages/
-│   ├── index.astro                # Main chat page
-│   ├── chat.astro                 # Full-screen chat
-│   ├── guide/
-│   │   ├── index.astro            # Decision tree + browser
-│   │   ├── commands.astro         # Command browser
-│   │   └── prompt-optimizer.astro # Prompt optimizer
-│   └── api/
-│       ├── chat.ts                # SSE streaming chat API
-│       ├── sessions.ts            # Session CRUD
-│       ├── health.ts              # Health check
-│       └── test-firepass-api-connection.ts
+│   ├── index.astro     # Main chat page
+│   ├── chat.astro      # Full-screen chat
+│   ├── guide/          # Guide pages
+│   └── api/            # API routes (chat, sessions, health)
 ├── styles/
-│   └── global.css                 # Tailwind v4 + glassmorphism
+│   └── global.css      # Tailwind v4 + glassmorphism
 └── types/
-    ├── chat.ts                    # Chat system types
-    └── database.ts                # Database types
-```
-
----
-
-## Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Setup environment
-cp .env.example .env
-# Edit .env with your Fireworks API key
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+    ├── chat.ts         # Chat system types
+    └── database.ts     # Database types
 ```
 
 ---
@@ -162,12 +153,14 @@ npm run preview
 
 ---
 
-## Build Stats
+## Project Stats
 
 | Metric | Value |
 |--------|-------|
-| Components | 39 React components |
-| Library Modules | 23 lib modules (3,502 lines) |
+| Components | 46 React components |
+| Library Modules | 28 modules |
+| Custom Hooks | 8 hooks |
+| Test Files | 27 tests |
 | Commands | 62 (28 Engineer + 34 Marketing) |
 | Workflows | 18 predefined workflows |
 | Templates | 14 prompt optimizer templates |
@@ -179,32 +172,57 @@ npm run preview
 
 ## Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| dev | `astro dev` | Development server |
-| build | `astro build` | Production build |
-| preview | `astro preview` | Preview build |
-| test | `vitest run` | Run tests |
-| benchmark | `npm run benchmark` | Offline benchmark suite (discovery + telemetry learning) |
-| benchmark:live | `npm run benchmark:live` | Live FirePass benchmark (requires `RUN_LIVE_BENCHMARK=1`) |
-| test:watch | `vitest` | Watch mode |
-| test:coverage | `vitest run --coverage` | Coverage report |
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start development server (http://localhost:4321) |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build locally |
+| `npm test` | Run all tests (Vitest) |
+| `npm run benchmark` | Run offline benchmark suite |
+| `npm run benchmark:live` | Run live FirePass benchmark |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run test:e2e` | Run E2E tests (Playwright) |
 
 ---
 
 ## Documentation
 
-- [Project Overview & PDR](./docs/project-overview-pdr.md)
-- [Codebase Summary](./docs/codebase-summary.md)
-- [Code Standards](./docs/code-standards.md)
-- [System Architecture](./docs/system-architecture.md)
-- [Project Roadmap](./docs/project-roadmap.md)
-- [Benchmark Test Guide](./docs/benchmark-test-guide.md)
-- [Deployment Guide](./docs/deployment-guide.md)
-- [Chat Backend](./docs/chat-backend.md)
+| Document | Description |
+|----------|-------------|
+| [Project Overview](./docs/project-overview-pdr.md) | Vision, features, and requirements |
+| [Codebase Summary](./docs/codebase-summary.md) | Component inventory and architecture |
+| [Code Standards](./docs/code-standards.md) | Naming conventions and patterns |
+| [System Architecture](./docs/system-architecture.md) | Technical architecture details |
+| [Project Roadmap](./docs/project-roadmap.md) | Development phases and milestones |
+| [Deployment Guide](./docs/deployment-guide.md) | Deployment options and configuration |
+| [Benchmark Guide](./docs/benchmark-test-guide.md) | Testing and benchmarking |
+| [Chat Backend](./docs/chat-backend.md) | Chat system implementation |
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please read our [Code Standards](./docs/code-standards.md) before contributing.
 
 ---
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Built with [Astro](https://astro.build) and [React](https://react.dev)
+- UI powered by [Tailwind CSS](https://tailwindcss.com) and [Framer Motion](https://www.framer.com/motion/)
+- AI powered by [Fireworks AI](https://fireworks.ai)

@@ -1,23 +1,73 @@
 # Deployment Guide
 
-**Version:** 0.0.1  
-**Last Updated:** 2026-04-07
-
----
-
-## Overview
+**Version:** 0.0.2  
+**Last Updated:** 2026-04-15
 
 This guide covers deploying ClaudeKit Chat to various platforms. The application is built with Astro 6 using SSR mode and requires Node.js >=22.12.0 for native SQLite support.
 
 ---
 
-## Build Process
+## Table of Contents
 
-### Prerequisites
-- Node.js >=22.12.0 (for native SQLite)
+- [Prerequisites](#prerequisites)
+- [Environment Setup](#environment-setup)
+- [Local Development](#local-development)
+- [Production Build](#production-build)
+- [Database Configuration](#database-configuration)
+- [Deployment Platforms](#deployment-platforms)
+  - [Vercel](#option-1-vercel)
+  - [Netlify](#option-2-netlify)
+  - [Node.js Server](#option-3-nodejs-server-vpsdedicated)
+  - [Docker](#option-4-docker-deployment)
+- [Health Checks](#health-checks)
+- [Troubleshooting](#troubleshooting)
+- [Security Checklist](#security-checklist)
+
+---
+
+## Prerequisites
+
+- Node.js >=22.12.0 (required for native SQLite support)
 - npm or yarn
+- Git
 
-### Development Build
+---
+
+## Environment Setup
+
+### Quick Setup
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit with your values
+# Required: PUBLIC_FIREPASS_API_KEY
+# Optional: DATABASE_URL, other settings
+```
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PUBLIC_FIREPASS_API_KEY` | Fireworks AI API key | `fw_...` |
+| `PUBLIC_FIREPASS_MODEL` | Model identifier | `accounts/fireworks/routers/kimi-k2p5-turbo` |
+| `PUBLIC_FIREPASS_BASE_URL` | API endpoint | `https://api.fireworks.ai/inference/v1` |
+
+### Optional Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite://./data/chat.db` | Database connection string |
+| `MAX_SESSIONS` | 100 | Maximum concurrent sessions |
+| `MESSAGE_PAGE_SIZE` | 50 | Message pagination size |
+| `ENABLE_TOOLS` | true | Enable tool execution |
+| `ENABLE_STREAMING` | true | Enable SSE streaming |
+
+---
+
+## Local Development
+
 ```bash
 # Install dependencies
 npm install
@@ -28,14 +78,27 @@ npm run dev
 # Server runs on http://localhost:4321
 ```
 
-### Production Build
+---
+
+## Production Build
+
 ```bash
 # Build for production
 npm run build
 
-# Output: dist/ directory with server bundle
 # Preview production build locally
 npm run preview
+```
+
+### Build Output
+
+```
+dist/
+├── server/
+│   └── entry.mjs          # Node.js server entry
+├── client/
+│   └── _astro/            # Static assets
+└── prerendered/           # Static pages
 ```
 
 ### Build Output
@@ -47,47 +110,6 @@ dist/
 │   ├── _astro/            # Static assets
 │   └── ...                # Client-side JS/CSS
 └── prerendered/           # Static pages (if any)
-```
-
----
-
-## Environment Setup
-
-### Required Variables
-```bash
-# Fireworks AI API (REQUIRED)
-PUBLIC_FIREPASS_API_KEY=your_fireworks_api_key
-PUBLIC_FIREPASS_MODEL=accounts/fireworks/routers/kimi-k2p5-turbo
-PUBLIC_FIREPASS_BASE_URL=https://api.fireworks.ai/inference/v1
-```
-
-### Optional Variables
-```bash
-# Database (SQLite default, PostgreSQL optional)
-DATABASE_URL=sqlite://./data/chat.db
-# OR
-DATABASE_URL=postgresql://user:pass@host:5432/claudekit
-
-# Session management
-MAX_SESSIONS=100
-MESSAGE_PAGE_SIZE=50
-
-# Feature flags
-ENABLE_TOOLS=true        # Currently disabled (Phase 4)
-ENABLE_STREAMING=true
-
-# Security (Phase 4)
-ALLOWED_ORIGINS=https://yourdomain.com
-MAX_INPUT_LENGTH=10000
-```
-
-### Environment File Setup
-```bash
-# Copy template
-cp .env.example .env
-
-# Edit with your values
-nano .env
 ```
 
 ---
@@ -109,7 +131,7 @@ nano .env
 
 **Setup:**
 ```bash
-# In .env
+# Environment variable
 DATABASE_URL=sqlite://./data/chat.db
 
 # Create data directory
@@ -122,6 +144,13 @@ mkdir -p data
 - Mount data directory as persistent volume
 - Regular backups of .db file
 - WAL mode enabled for better concurrency
+
+**Docker Volume:**
+```yaml
+# docker-compose.yml
+volumes:
+  - ./data:/app/data
+```
 
 ### Option 2: PostgreSQL (Recommended for Production)
 
@@ -527,13 +556,64 @@ pm2 describe claudekit
 
 ---
 
+## GitHub Actions CI/CD (Optional)
+
+### Example Workflow
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_FIREPASS_API_KEY: ${{ secrets.FIREPASS_API_KEY }}
+```
+
+---
+
 ## Security Checklist
 
-- [ ] Environment variables not committed to git
-- [ ] DATABASE_URL uses strong password (PostgreSQL)
+Before deploying to production:
+
+- [ ] Environment variables not committed to git (use `.env.example` only)
+- [ ] `PUBLIC_FIREPASS_API_KEY` is kept secret
+- [ ] DATABASE_URL uses strong password (if using PostgreSQL)
 - [ ] HTTPS enabled in production
-- [ ] Security headers configured (Phase 4)
+- [ ] Security headers configured
 - [ ] Rate limiting enabled (Phase 4)
 - [ ] Input validation active (Phase 4)
-- [ ] Regular dependency updates
+- [ ] Regular dependency updates (`npm audit`)
+- [ ] Health check endpoint monitored
+
+---
+
+## Support
+
+For deployment issues:
+1. Check the [Troubleshooting](#troubleshooting) section
+2. Review [Environment Setup](#environment-setup)
+3. Open an [issue](../../issues) with error details
 
