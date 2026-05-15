@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { commands, categories, getCommandsByCategory, type Command } from "../data/commands";
-import { optimizePrompt, optimizePromptWithImage, optimizePromptStream, type OptimizeResult } from "../lib/firepass-client";
+import { optimizePrompt, optimizePromptWithImage, optimizePromptStream, type OptimizeResult } from "../lib/router-client";
 import { recommendCommands, detectIntent, getRelatedCommands } from "../lib/command-recommender";
 import { getSmartRecommendation, getAlternativeWorkflows, formatWorkflowForDisplay, type Workflow } from "../lib/workflow-recommendation-engine";
 import { workflows } from "../lib/workflows";

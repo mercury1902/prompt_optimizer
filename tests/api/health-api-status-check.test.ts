@@ -35,9 +35,9 @@ describe('Health API Status Check Tests', () => {
       expect(body).toHaveProperty('checks');
       expect(body.checks).toHaveProperty('api');
       expect(body.checks).toHaveProperty('env');
-      expect(body.checks.env).toHaveProperty('firepassKey');
-      expect(body.checks.env).toHaveProperty('firepassModel');
-      expect(body.checks.env).toHaveProperty('firepassUrl');
+      expect(body.checks.env).toHaveProperty('nineRouterKey');
+      expect(body.checks.env).toHaveProperty('nineRouterModel');
+      expect(body.checks.env).toHaveProperty('nineRouterUrl');
     });
 
     it('should return valid ISO timestamp', async () => {
@@ -69,9 +69,9 @@ describe('Health API Status Check Tests', () => {
       const response = await GET({} as any);
       const body = await response.json();
 
-      expect(typeof body.checks.env.firepassKey).toBe('boolean');
-      expect(typeof body.checks.env.firepassModel).toBe('boolean');
-      expect(typeof body.checks.env.firepassUrl).toBe('boolean');
+      expect(typeof body.checks.env.nineRouterKey).toBe('boolean');
+      expect(typeof body.checks.env.nineRouterModel).toBe('boolean');
+      expect(typeof body.checks.env.nineRouterUrl).toBe('boolean');
     });
 
     it('should return boolean for api check', async () => {
@@ -108,9 +108,9 @@ describe('Health API Status Check Tests', () => {
       const response = await GET({} as any);
       const body = await response.json();
 
-      const allEnvOk = body.checks.env.firepassKey &&
-                       body.checks.env.firepassModel &&
-                       body.checks.env.firepassUrl;
+      const allEnvOk = body.checks.env.nineRouterKey &&
+                       body.checks.env.nineRouterModel &&
+                       body.checks.env.nineRouterUrl;
 
       if (!allEnvOk) {
         expect(body.checks.api).toBe(false);

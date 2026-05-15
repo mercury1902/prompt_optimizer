@@ -8,7 +8,7 @@ interface LiveBenchmarkScenario {
   acceptedCommands: string[];
 }
 
-interface FirepassOptimizeResponse {
+interface RouterOptimizeResponse {
   optimizedPrompt: string;
   suggestedCommand: string;
   commandReason: string;
@@ -19,7 +19,7 @@ interface FirepassOptimizeResponse {
 }
 
 function loadSystemPromptFromApp(): string {
-  const filePath = resolve(process.cwd(), "src/lib/firepass-client.ts");
+  const filePath = resolve(process.cwd(), "src/lib/router-client.ts");
   if (!existsSync(filePath)) {
     return "Bạn là prompt optimizer của ClaudeKit. Trả về JSON object có optimizedPrompt, suggestedCommand, commandReason.";
   }
@@ -62,9 +62,9 @@ function readRuntimeEnv(key: string): string | undefined {
 }
 
 const shouldRunLiveBenchmark = process.env.RUN_LIVE_BENCHMARK === "1";
-const apiKey = readRuntimeEnv("PUBLIC_FIREPASS_API_KEY");
-const model = readRuntimeEnv("PUBLIC_FIREPASS_MODEL") || "accounts/fireworks/routers/kimi-k2p5-turbo";
-const baseUrl = readRuntimeEnv("PUBLIC_FIREPASS_BASE_URL") || "https://api.fireworks.ai/inference/v1";
+const apiKey = readRuntimeEnv("PUBLIC_NINEROUTER_API_KEY");
+const model = readRuntimeEnv("PUBLIC_NINEROUTER_MODEL") || "cc/claude-sonnet-4-20250514";
+const baseUrl = readRuntimeEnv("PUBLIC_NINEROUTER_BASE_URL") || "http://localhost:20128/v1";
 const timeoutMs = Number(process.env.BENCHMARK_TIMEOUT_MS || "45000");
 const systemPrompt = loadSystemPromptFromApp();
 
@@ -125,7 +125,7 @@ function isAcceptedSuggestion(suggestedCommand: string, acceptedCommands: string
   });
 }
 
-async function optimizePromptLive(prompt: string): Promise<FirepassOptimizeResponse> {
+async function optimizePromptLive(prompt: string): Promise<RouterOptimizeResponse> {
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -149,21 +149,21 @@ async function optimizePromptLive(prompt: string): Promise<FirepassOptimizeRespo
   });
 
   if (!response.ok) {
-    throw new Error(`Firepass API error ${response.status}`);
+    throw new Error(`9Router API error ${response.status}`);
   }
 
   const data = await response.json();
   const content = data?.choices?.[0]?.message?.content;
   if (!content || typeof content !== "string") {
-    throw new Error("Missing response content from Firepass");
+    throw new Error("Missing response content from 9Router");
   }
 
-  return JSON.parse(stripCodeFences(content)) as FirepassOptimizeResponse;
+  return JSON.parse(stripCodeFences(content)) as RouterOptimizeResponse;
 }
 
 const liveSuite = shouldRunLiveBenchmark && apiKey ? describe : describe.skip;
 
-liveSuite("benchmark: live FirePass Kimi prompt optimizer", () => {
+liveSuite("benchmark: live 9Router prompt optimizer", () => {
   it("passes practical quality thresholds on real API", async () => {
     const latenciesMs: number[] = [];
     let schemaPass = 0;

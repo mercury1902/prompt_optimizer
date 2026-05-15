@@ -52,7 +52,7 @@ describe('Chat Flow End-to-End Integration Tests', () => {
       // 1. Health check succeeds
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ status: 'ok', checks: { env: { firepassKey: true } } }),
+        json: async () => ({ status: 'ok', checks: { env: { nineRouterKey: true } } }),
       });
 
       // 2. Chat API returns SSE stream

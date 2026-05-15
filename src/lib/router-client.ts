@@ -1,3 +1,5 @@
+import { parseAIJSON } from "./utils";
+
 export interface OptimizeResult {
   optimizedPrompt: string;
   suggestedCommand: string;
@@ -176,9 +178,9 @@ For complex tasks (NEEDS workflow):
 }`;
 
 export async function optimizePrompt(rawPrompt: string): Promise<OptimizeResult> {
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/routers/kimi-k2p5-turbo";
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_NINEROUTER_MODEL || "claude-3-5-sonnet-20240620";
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -195,27 +197,51 @@ export async function optimizePrompt(rawPrompt: string): Promise<OptimizeResult>
       temperature: 0.7,
       max_tokens: 4096,
       response_format: { type: "json_object" },
+      stream: false,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Firepass API error: ${response.status}`);
+    throw new Error(`9Router API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
+  let content: string | undefined;
+  const ct = response.headers?.get?.("content-type") || "";
+  if (ct.includes("text/event-stream")) {
+    const text = await response.text();
+    const chunks: string[] = [];
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+        try {
+          const parsed = JSON.parse(trimmed.slice(6));
+          const delta = parsed.choices?.[0]?.delta?.content || "";
+          if (delta) chunks.push(delta);
+        } catch { /* skip */ }
+      }
+    }
+    content = chunks.join("");
+  } else {
+    const data = await response.json();
+    content = data.choices?.[0]?.message?.content;
+  }
 
   if (!content) {
-    throw new Error("Empty response from Firepass API");
+    throw new Error("Empty response from 9Router API");
   }
 
-  return JSON.parse(content) as OptimizeResult;
+  const parsed = parseAIJSON<OptimizeResult>(content);
+  if (!parsed) {
+    throw new Error("Failed to parse 9Router API response as JSON");
+  }
+  
+  return parsed;
 }
 
 export async function optimizePromptWithImage(rawPrompt: string, imageBase64: string): Promise<OptimizeResult> {
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_VISION_MODEL || import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/models/kimi-k2p5-turbo";
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_NINEROUTER_VISION_MODEL || import.meta.env.PUBLIC_NINEROUTER_MODEL || "claude-3-5-sonnet-20240620";
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -238,21 +264,45 @@ export async function optimizePromptWithImage(rawPrompt: string, imageBase64: st
       temperature: 0.7,
       max_tokens: 4096,
       response_format: { type: "json_object" },
+      stream: false,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Firepass API error: ${response.status}`);
+    throw new Error(`9Router API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
+  let content: string | undefined;
+  const ct = response.headers?.get?.("content-type") || "";
+  if (ct.includes("text/event-stream")) {
+    const text = await response.text();
+    const chunks: string[] = [];
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+        try {
+          const parsed = JSON.parse(trimmed.slice(6));
+          const delta = parsed.choices?.[0]?.delta?.content || "";
+          if (delta) chunks.push(delta);
+        } catch { /* skip */ }
+      }
+    }
+    content = chunks.join("");
+  } else {
+    const data = await response.json();
+    content = data.choices?.[0]?.message?.content;
+  }
 
   if (!content) {
-    throw new Error("Empty response from Firepass API");
+    throw new Error("Empty response from 9Router API");
   }
 
-  return JSON.parse(content) as OptimizeResult;
+  const parsed = parseAIJSON<OptimizeResult>(content);
+  if (!parsed) {
+    throw new Error("Failed to parse 9Router API response as JSON");
+  }
+  
+  return parsed;
 }
 
 /**
@@ -262,9 +312,9 @@ export async function optimizePromptWithImage(rawPrompt: string, imageBase64: st
 export async function* optimizePromptStream(
   rawPrompt: string
 ): AsyncGenerator<StreamingOptimizeResult, void, unknown> {
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/routers/kimi-k2p5-turbo";
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_NINEROUTER_MODEL || "claude-3-5-sonnet-20240620";
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -286,7 +336,7 @@ export async function* optimizePromptStream(
   });
 
   if (!response.ok) {
-    throw new Error(`Firepass API error: ${response.status}`);
+    throw new Error(`9Router API error: ${response.status}`);
   }
 
   if (!response.body) {
@@ -337,10 +387,9 @@ export async function* optimizePromptStream(
               const accumulatedContent = chunks.join("");
               let partialResult: Partial<OptimizeResult> = {};
 
-              try {
-                partialResult = JSON.parse(accumulatedContent);
-              } catch {
-                // Partial JSON, use what we have
+              const parsedPartial = parseAIJSON<Partial<OptimizeResult>>(accumulatedContent);
+              if (parsedPartial) {
+                partialResult = parsedPartial;
               }
 
               yield {
@@ -379,7 +428,11 @@ export async function* optimizePromptStream(
 
     // Yield final complete result
     const finalContent = chunks.join("");
-    const finalResult = JSON.parse(finalContent) as OptimizeResult;
+    const finalResult = parseAIJSON<OptimizeResult>(finalContent);
+
+    if (!finalResult) {
+      throw new Error("Failed to parse final streaming response as JSON");
+    }
 
     yield {
       ...finalResult,
@@ -400,9 +453,9 @@ export async function optimizePromptStreaming(
   rawPrompt: string,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_MODEL || "accounts/fireworks/routers/kimi-k2p5-turbo";
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_NINEROUTER_MODEL || "claude-3-5-sonnet-20240620";
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -425,7 +478,7 @@ export async function optimizePromptStreaming(
     });
 
     if (!response.ok) {
-      throw new Error(`Firepass API error: ${response.status}`);
+      throw new Error(`9Router API error: ${response.status}`);
     }
 
     if (!response.body) {
@@ -488,8 +541,12 @@ export async function optimizePromptStreaming(
 
       // Parse and return final result
       const finalContent = chunks.join("");
-      const finalResult = JSON.parse(finalContent) as OptimizeResult;
-      callbacks.onComplete?.(finalResult);
+      const finalResult = parseAIJSON<OptimizeResult>(finalContent);
+      if (finalResult) {
+        callbacks.onComplete?.(finalResult);
+      } else {
+        callbacks.onError?.(new Error("Failed to parse final result as JSON"));
+      }
 
     } finally {
       reader.releaseLock();

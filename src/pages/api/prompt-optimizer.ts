@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { parseAIJSON } from '../../lib/utils';
 import type {
   InputLanguagePreference,
   MultilingualOptimizedPromptResult,
@@ -103,31 +104,7 @@ function checkAndConsumeRateLimit(clientKey: string, now: number): { limited: bo
 }
 
 function parseJsonObjectFromModelContent(content: string): Record<string, unknown> | null {
-  const trimmed = content.trim();
-  if (!trimmed) return null;
-
-  const withoutCodeFence = trimmed
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/, '')
-    .trim();
-
-  const directParseCandidate = withoutCodeFence;
-  try {
-    return JSON.parse(directParseCandidate) as Record<string, unknown>;
-  } catch {
-    const firstBrace = withoutCodeFence.indexOf('{');
-    const lastBrace = withoutCodeFence.lastIndexOf('}');
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      return null;
-    }
-    const objectSlice = withoutCodeFence.slice(firstBrace, lastBrace + 1);
-    try {
-      return JSON.parse(objectSlice) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  }
+  return parseAIJSON<Record<string, unknown>>(content);
 }
 
 function normalizePromptResult(raw: Record<string, unknown>, rawContent: string): MultilingualOptimizedPromptResult {
@@ -247,18 +224,18 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const apiKey = import.meta.env.FIREPASS_API_KEY || import.meta.env.PUBLIC_FIREPASS_API_KEY;
+    const apiKey = import.meta.env.NINEROUTER_API_KEY || import.meta.env.PUBLIC_NINEROUTER_API_KEY;
     const model =
-      import.meta.env.FIREPASS_MODEL ||
-      import.meta.env.PUBLIC_FIREPASS_MODEL ||
-      'accounts/fireworks/routers/kimi-k2p5-turbo';
+      import.meta.env.NINEROUTER_MODEL ||
+      import.meta.env.PUBLIC_NINEROUTER_MODEL ||
+      'claude-3-5-sonnet-20240620';
     const baseUrl =
-      import.meta.env.FIREPASS_BASE_URL ||
-      import.meta.env.PUBLIC_FIREPASS_BASE_URL ||
-      'https://api.fireworks.ai/inference/v1';
+      import.meta.env.NINEROUTER_BASE_URL ||
+      import.meta.env.PUBLIC_NINEROUTER_BASE_URL ||
+      'http://localhost:20128/v1';
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Missing FIREPASS_API_KEY (or PUBLIC_FIREPASS_API_KEY)' }), {
+      return new Response(JSON.stringify({ error: 'Missing NINEROUTER_API_KEY (or PUBLIC_NINEROUTER_API_KEY)' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -275,6 +252,7 @@ export const POST: APIRoute = async ({ request }) => {
         temperature: 0.35,
         max_tokens: 2200,
         response_format: { type: 'json_object' },
+        stream: false,
         messages: [
           { role: 'system', content: MULTILINGUAL_SYSTEM_PROMPT },
           { role: 'system', content: buildPreferenceContext(inputLanguagePreference, outputLanguageMode) },
@@ -297,8 +275,27 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const data = await response.json();
-    const assistantContent = String(data?.choices?.[0]?.message?.content ?? '').trim();
+    // Handle both streaming and non-streaming responses from upstream
+    let assistantContent = '';
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/event-stream')) {
+      const text = await response.text();
+      const chunks: string[] = [];
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) chunks.push(delta);
+          } catch { /* skip malformed */ }
+        }
+      }
+      assistantContent = chunks.join('').trim();
+    } else {
+      const data = await response.json();
+      assistantContent = String(data?.choices?.[0]?.message?.content ?? '').trim();
+    }
     const parsedObject = parseJsonObjectFromModelContent(assistantContent);
     if (!parsedObject) {
       logTelemetry('parse_error', {

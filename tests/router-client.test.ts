@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the fetch API
 global.fetch = vi.fn();
 
-describe("Firepass Client - Comprehensive Tests", () => {
+describe("9Router Client - Comprehensive Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   describe("API Request Configuration", () => {
-    it("should call Firepass API with correct parameters", async () => {
+    it("should call 9Router API with correct parameters", async () => {
       const mockResponse = {
         choices: [{
           message: {
@@ -29,7 +28,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("test prompt");
 
       expect(result.optimizedPrompt).toBe("Optimized test prompt");
@@ -56,7 +55,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test prompt");
 
       expect(fetch).toHaveBeenCalledWith(
@@ -89,7 +88,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test");
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -115,7 +114,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test prompt");
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -144,7 +143,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test");
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -173,7 +172,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("make login feature");
 
       expect(result.optimizedPrompt).toBe(mockResult.optimizedPrompt);
@@ -215,7 +214,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("launch campaign");
 
       expect(result.needsWorkflow).toBe(true);
@@ -245,7 +244,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("fix typo");
 
       expect(result.needsWorkflow).toBe(false);
@@ -260,8 +259,8 @@ describe("Firepass Client - Comprehensive Tests", () => {
         status: 401
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
-      await expect(optimizePrompt("test")).rejects.toThrow("Firepass API error: 401");
+      const { optimizePrompt } = await import("../src/lib/router-client");
+      await expect(optimizePrompt("test")).rejects.toThrow("9Router API error: 401");
     });
 
     it("should throw error on API failure (500)", async () => {
@@ -270,8 +269,8 @@ describe("Firepass Client - Comprehensive Tests", () => {
         status: 500
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
-      await expect(optimizePrompt("test")).rejects.toThrow("Firepass API error: 500");
+      const { optimizePrompt } = await import("../src/lib/router-client");
+      await expect(optimizePrompt("test")).rejects.toThrow("9Router API error: 500");
     });
 
     it("should throw error on empty response content", async () => {
@@ -284,14 +283,14 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
-      await expect(optimizePrompt("test")).rejects.toThrow("Empty response from Firepass API");
+      const { optimizePrompt } = await import("../src/lib/router-client");
+      await expect(optimizePrompt("test")).rejects.toThrow("Empty response from 9Router API");
     });
 
     it("should throw error on network failure", async () => {
       (fetch as any).mockRejectedValueOnce(new Error("Network error"));
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await expect(optimizePrompt("test")).rejects.toThrow("Network error");
     });
 
@@ -303,8 +302,8 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
-      await expect(optimizePrompt("test")).rejects.toThrow("Empty response from Firepass API");
+      const { optimizePrompt } = await import("../src/lib/router-client");
+      await expect(optimizePrompt("test")).rejects.toThrow("Empty response from 9Router API");
     });
 
     it("should handle malformed JSON response", async () => {
@@ -319,8 +318,8 @@ describe("Firepass Client - Comprehensive Tests", () => {
         })
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
-      await expect(optimizePrompt("test")).rejects.toThrow(SyntaxError);
+      const { optimizePrompt } = await import("../src/lib/router-client");
+      await expect(optimizePrompt("test")).rejects.toThrow("Failed to parse 9Router API response as JSON");
     });
   });
 
@@ -344,7 +343,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test");
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -370,7 +369,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       await optimizePrompt("test");
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -398,7 +397,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("");
 
       expect(result.optimizedPrompt).toBe("");
@@ -425,7 +424,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt(longPrompt);
 
       expect(result.optimizedPrompt).toBe(longPrompt);
@@ -450,7 +449,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         json: async () => mockResponse
       });
 
-      const { optimizePrompt } = await import("../src/lib/firepass-client");
+      const { optimizePrompt } = await import("../src/lib/router-client");
       const result = await optimizePrompt("tạo feature login");
 
       expect(result.suggestedCommand).toBe("/ck:cook");
@@ -501,7 +500,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: createMockStream(chunks)
       });
 
-      const { optimizePromptStream } = await import("../src/lib/firepass-client");
+      const { optimizePromptStream } = await import("../src/lib/router-client");
       const generator = optimizePromptStream("test");
       const received: string[] = [];
 
@@ -535,7 +534,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: createMockStream(chunks)
       });
 
-      const { optimizePromptStreaming } = await import("../src/lib/firepass-client");
+      const { optimizePromptStreaming } = await import("../src/lib/router-client");
       const onChunk = vi.fn();
       const onComplete = vi.fn();
       const onError = vi.fn();
@@ -554,7 +553,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: createMockStream(chunks)
       });
 
-      const { optimizePromptStreaming } = await import("../src/lib/firepass-client");
+      const { optimizePromptStreaming } = await import("../src/lib/router-client");
       await optimizePromptStreaming("test", {});
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body);
@@ -567,7 +566,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         status: 500
       });
 
-      const { optimizePromptStreaming } = await import("../src/lib/firepass-client");
+      const { optimizePromptStreaming } = await import("../src/lib/router-client");
       const onError = vi.fn();
 
       await optimizePromptStreaming("test", { onError });
@@ -581,7 +580,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: null
       });
 
-      const { optimizePromptStream } = await import("../src/lib/firepass-client");
+      const { optimizePromptStream } = await import("../src/lib/router-client");
 
       await expect(async () => {
         const gen = optimizePromptStream("test");
@@ -608,7 +607,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: createMockStream(chunks)
       });
 
-      const { optimizePromptStreaming } = await import("../src/lib/firepass-client");
+      const { optimizePromptStreaming } = await import("../src/lib/router-client");
       const onComplete = vi.fn();
 
       await optimizePromptStreaming("test", { onComplete });
@@ -631,7 +630,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
         body: createMockStream(chunks)
       });
 
-      const { optimizePromptStreaming } = await import("../src/lib/firepass-client");
+      const { optimizePromptStreaming } = await import("../src/lib/router-client");
       const onChunk = vi.fn();
 
       await optimizePromptStreaming("test", { onChunk });
@@ -641,7 +640,7 @@ describe("Firepass Client - Comprehensive Tests", () => {
     });
 
     it("should check streaming support", async () => {
-      const { isStreamingSupported } = await import("../src/lib/firepass-client");
+      const { isStreamingSupported } = await import("../src/lib/router-client");
       const supported = isStreamingSupported();
       expect(typeof supported).toBe("boolean");
     });

@@ -1,14 +1,14 @@
 import type { APIRoute } from "astro";
 
 /**
- * Test endpoint to verify Firepass/Fireworks API connectivity
+ * Test endpoint to verify 9Router API connectivity
  */
 export const POST: APIRoute = async () => {
-  console.log("[API Test] Starting Firepass API test...");
+  console.log("[API Test] Starting 9Router API test...");
 
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_FIREPASS_MODEL;
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL;
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_NINEROUTER_MODEL;
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL;
 
   console.log("[API Test] Config:", { baseUrl, model, hasKey: !!apiKey });
 

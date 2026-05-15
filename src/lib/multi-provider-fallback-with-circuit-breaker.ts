@@ -1,6 +1,6 @@
 // Multi-provider fallback stub - Phase 4 will implement full version with circuit breaker
 
-import { optimizePrompt, type OptimizeResult } from "./firepass-client";
+import { optimizePrompt, type OptimizeResult } from "./router-client";
 
 export interface ProviderResult {
   provider: string;
@@ -16,7 +16,7 @@ export interface Provider {
 
 const providers: Provider[] = [
   {
-    name: "firepass",
+    name: "9router",
     execute: optimizePrompt,
     isAvailable: () => true,
   },

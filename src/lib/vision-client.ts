@@ -1,4 +1,5 @@
-import type { OptimizeResult } from "./firepass-client";
+import type { OptimizeResult } from "./router-client";
+import { parseAIJSON } from "./utils";
 
 export interface VisionResult extends OptimizeResult {
   imageDescription?: string;
@@ -101,9 +102,9 @@ export async function analyzeImage(
   imageDataUrl: string,
   userPrompt?: string
 ): Promise<VisionResult> {
-  const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-  const model = import.meta.env.PUBLIC_VISION_MODEL || "accounts/fireworks/routers/kimi-k2p5-turbo";
-  const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL || "https://api.fireworks.ai/inference/v1";
+  const apiKey = import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+  const model = import.meta.env.PUBLIC_VISION_MODEL || "claude-3-5-sonnet-20240620";
+  const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
   // Extract base64 data
   const base64Data = imageDataUrl.split(",")[1];
@@ -151,8 +152,14 @@ export async function analyzeImage(
     throw new Error("Empty response from Vision API");
   }
 
-  return JSON.parse(content_) as VisionResult;
+  const parsed = parseAIJSON<VisionResult>(content_);
+  if (!parsed) {
+    throw new Error("Failed to parse Vision API response as JSON");
+  }
+  
+  return parsed;
 }
+
 
 /**
  * Optimize prompt with optional image attachment
@@ -163,7 +170,7 @@ export async function optimizeWithVision(
 ): Promise<VisionResult> {
   if (!imageDataUrl) {
     // Fall back to regular optimize
-    const { optimizePrompt } = await import("./firepass-client");
+    const { optimizePrompt } = await import("./router-client");
     const result = await optimizePrompt(textPrompt);
     return { ...result, imageDescription: undefined, imageAnalysis: undefined };
   }

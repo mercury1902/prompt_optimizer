@@ -12,17 +12,17 @@ export const GET: APIRoute = async () => {
     checks: {
       api: true,
       env: {
-        firepassKey: !!import.meta.env.PUBLIC_FIREPASS_API_KEY,
-        firepassModel: !!import.meta.env.PUBLIC_FIREPASS_MODEL,
-        firepassUrl: !!import.meta.env.PUBLIC_FIREPASS_BASE_URL,
+        nineRouterKey: !!import.meta.env.PUBLIC_NINEROUTER_API_KEY,
+        nineRouterModel: !!import.meta.env.PUBLIC_NINEROUTER_MODEL,
+        nineRouterUrl: !!import.meta.env.PUBLIC_NINEROUTER_BASE_URL,
       }
     }
   };
 
   // Determine overall status
-  const hasRequiredEnv = health.checks.env.firepassKey &&
-                         health.checks.env.firepassModel &&
-                         health.checks.env.firepassUrl;
+  const hasRequiredEnv = health.checks.env.nineRouterKey &&
+                         health.checks.env.nineRouterModel &&
+                         health.checks.env.nineRouterUrl;
 
   if (!hasRequiredEnv) {
     health.status = 'error';

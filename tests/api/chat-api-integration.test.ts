@@ -70,7 +70,7 @@ describe('Chat API Integration Tests', () => {
     });
 
     it('should establish SSE stream successfully', async () => {
-      // Mock successful Firepass API response with SSE stream
+      // Mock successful 9Router API response with SSE stream
       const mockReader = {
         read: vi.fn()
           .mockResolvedValueOnce({
@@ -109,7 +109,7 @@ describe('Chat API Integration Tests', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-cache');
     });
 
-    it('should handle Firepass API 401 error', async () => {
+    it('should handle 9Router API 401 error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -128,7 +128,7 @@ describe('Chat API Integration Tests', () => {
       expect(response.headers.get('Content-Type')).toBe('text/event-stream');
     });
 
-    it('should handle Firepass API 500 error', async () => {
+    it('should handle 9Router API 500 error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,

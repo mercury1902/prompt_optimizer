@@ -138,26 +138,25 @@ export const POST: APIRoute = async ({ request }) => {
               });
           }
 
-          // Call Firepass API with streaming and tools
-          const apiKey = import.meta.env.PUBLIC_FIREPASS_API_KEY;
-          const model = import.meta.env.PUBLIC_FIREPASS_MODEL;
-          const baseUrl = import.meta.env.PUBLIC_FIREPASS_BASE_URL;
+          // Call 9Router API with streaming and tools
+          const apiKey = import.meta.env.NINEROUTER_API_KEY || import.meta.env.PUBLIC_NINEROUTER_API_KEY;
+          const model = import.meta.env.PUBLIC_NINEROUTER_MODEL || "claude-3-5-sonnet-20240620";
+          const baseUrl = import.meta.env.PUBLIC_NINEROUTER_BASE_URL || "http://localhost:20128/v1";
 
-          console.log("[API /chat] Firepass config:");
+          console.log("[API /chat] 9Router config:");
           console.log("[API /chat]   - Base URL:", baseUrl);
           console.log("[API /chat]   - Model:", model);
           console.log("[API /chat]   - API Key present:", !!apiKey);
-          console.log("[API /chat]   - API Key length:", apiKey?.length);
 
           if (!apiKey || !baseUrl) {
-            throw new Error("Missing Firepass configuration: API key or base URL not set");
+            throw new Error("Missing 9Router configuration: API key or base URL not set");
           }
 
           // Get available tools
           const tools = getToolDefinitions();
           console.log("[API /chat] Available tools:", tools.length);
 
-          console.log("[API /chat] Calling Firepass API...");
+          console.log("[API /chat] Calling 9Router API...");
           const requestBody: Record<string, unknown> = {
             model,
             messages: [
@@ -168,13 +167,16 @@ export const POST: APIRoute = async ({ request }) => {
             temperature: 0.7,
             max_tokens: 4096,
           };
-          // Only add tools if explicitly enabled and properly formatted
-          if (tools.length > 0) {
-            // TEMPORARILY DISABLE TOOLS - testing if this is the cause of API error
-            // requestBody.tools = tools;
-            console.log("[API /chat] Tools temporarily disabled for testing");
+          
+          // Only add tools if explicitly enabled in .env or by default
+          const toolsEnabled = import.meta.env.ENABLE_TOOLS !== "false";
+          if (tools.length > 0 && toolsEnabled) {
+            requestBody.tools = tools;
+            console.log("[API /chat] Tools enabled:", tools.length);
+          } else {
+            console.log("[API /chat] Tools disabled or none available");
           }
-          console.log("[API /chat] Full request body:", JSON.stringify(requestBody, null, 2));
+          console.log("[API /chat] Request body summary: model=", model, "messages=", requestBody.messages.length, "tools=", !!requestBody.tools);
 
           const response = await fetch(`${baseUrl}/chat/completions`, {
             method: "POST",
@@ -185,13 +187,13 @@ export const POST: APIRoute = async ({ request }) => {
             body: JSON.stringify(requestBody),
           });
 
-          console.log("[API /chat] Firepass response status:", response.status);
-          console.log("[API /chat] Firepass response ok:", response.ok);
-          console.log("[API /chat] Firepass response headers:", Object.fromEntries(response.headers.entries()));
+          console.log("[API /chat] 9Router response status:", response.status);
+          console.log("[API /chat] 9Router response ok:", response.ok);
+          console.log("[API /chat] 9Router response headers:", Object.fromEntries(response.headers.entries()));
 
           if (!response.ok) {
             const errorText = await response.text().catch(() => "Unknown error");
-            console.error("[API /chat] Firepass error response:", errorText);
+            console.error("[API /chat] 9Router error response:", errorText);
             throw new Error(`API error: ${response.status} - ${errorText}`);
           }
 
@@ -310,7 +312,7 @@ export const POST: APIRoute = async ({ request }) => {
                   if (finalResponse.ok && finalResponse.body) {
                     const finalReader = finalResponse.body.getReader();
                     let finalBuffer = "";
-                    fullContent = ""; // Reset for final content
+                    // Keep existing fullContent (it contains the text before tool calls)
 
                     while (true) {
                       const { done: finalDone, value: finalValue } = await finalReader.read();
