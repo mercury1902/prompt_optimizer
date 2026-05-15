@@ -52,3 +52,35 @@ export function isServer(): boolean {
 export function isClient(): boolean {
   return typeof window !== "undefined";
 }
+/**
+ * Parse JSON from AI model response, handling markdown fences and partial content
+ */
+export function parseAIJSON<T = any>(content: string): T | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+
+  // Remove markdown code fences if present
+  const withoutCodeFence = trimmed
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+
+  try {
+    return JSON.parse(withoutCodeFence) as T;
+  } catch {
+    // If direct parse fails, try to find the first '{' and last '}'
+    const firstBrace = withoutCodeFence.indexOf("{");
+    const lastBrace = withoutCodeFence.lastIndexOf("}");
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      const objectSlice = withoutCodeFence.slice(firstBrace, lastBrace + 1);
+      try {
+        return JSON.parse(objectSlice) as T;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}

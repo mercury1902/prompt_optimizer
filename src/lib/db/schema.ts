@@ -69,24 +69,26 @@ CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON chat_sessions(updated_at D
 
 // Table placeholders for type inference (Drizzle ORM compatible)
 export const chatSessions = {
-  id: {} as { $type: string },
-  title: {} as { $type: string },
-  createdAt: {} as { $type: Date },
-  updatedAt: {} as { $type: Date },
-  model: {} as { $type: string | undefined },
+  id: { name: 'id' } as { name: 'id', $type: string },
+  title: { name: 'title' } as { name: 'title', $type: string },
+  createdAt: { name: 'createdAt' } as { name: 'createdAt', $type: Date },
+  updatedAt: { name: 'updatedAt' } as { name: 'updatedAt', $type: Date },
+  model: { name: 'model' } as { name: 'model', $type: string | undefined },
+  _name: 'chatSessions',
   $inferSelect: {} as ChatSession,
   $inferInsert: {} as Partial<ChatSession>,
 };
 
 export const messages = {
-  id: {} as { $type: string },
-  sessionId: {} as { $type: string },
-  role: {} as { $type: MessageRole },
-  content: {} as { $type: string },
-  createdAt: {} as { $type: Date },
-  toolCalls: {} as { $type: ToolCallData[] | undefined },
-  toolResults: {} as { $type: ToolResultData[] | undefined },
-  isComplete: {} as { $type: boolean },
+  id: { name: 'id' } as { name: 'id', $type: string },
+  sessionId: { name: 'sessionId' } as { name: 'sessionId', $type: string },
+  role: { name: 'role' } as { name: 'role', $type: MessageRole },
+  content: { name: 'content' } as { name: 'content', $type: string },
+  createdAt: { name: 'createdAt' } as { name: 'createdAt', $type: Date },
+  toolCalls: { name: 'toolCalls' } as { name: 'toolCalls', $type: ToolCallData[] | undefined },
+  toolResults: { name: 'toolResults' } as { name: 'toolResults', $type: ToolResultData[] | undefined },
+  isComplete: { name: 'isComplete' } as { name: 'isComplete', $type: boolean },
+  _name: 'messages',
   $inferSelect: {} as Message,
   $inferInsert: {} as Partial<Message>,
 };

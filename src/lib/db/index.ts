@@ -29,11 +29,34 @@ export type { ChatSession, Message, ToolCallData, ToolResultData };
 // Export database availability check
 export { isDatabaseAvailable, closeDatabase };
 
+// Helper to extract tableName from table string or object
+const getTableName = (table: any): string => {
+  if (typeof table === 'string') return table;
+  return table?._name || 'unknown';
+};
+
+// Helper to extract where conditions from Drizzle-like or simple objects
+const parseWhere = (where: any): any => {
+  if (!where) return {};
+  
+  // Handle drizzle-orm eq() and other operators
+  // These usually have a 'left' and 'right' or similar structure depending on version
+  // But for our mock, we'll try to extract common patterns
+  if (where.left && where.right) {
+    const key = where.left.name || 'id';
+    return { [key]: where.right };
+  }
+
+  // Handle simple objects { id: 'xxx' }
+  return where;
+};
+
 // Create a Drizzle-like query interface
 const dbQueryInterface = {
   chatSessions: {
-    findFirst: async ({ where }: { where: { id: string } }) => {
-      const result = queryOne('SELECT * FROM chat_sessions WHERE id = ?', [where.id]);
+    findFirst: async ({ where }: { where: any }) => {
+      const condition = parseWhere(where);
+      const result = queryOne('SELECT * FROM chat_sessions WHERE id = ?', [condition.id]);
       if (!result) return null;
       return {
         ...result,
@@ -42,8 +65,7 @@ const dbQueryInterface = {
       };
     },
     findMany: async ({ orderBy, limit, offset }: any) => {
-      // Note: orderBy is simplified - always sorts by updated_at DESC
-      const results = getSessions(limit || 20, offset || 0);
+      const results = getSessions(limit || 50, offset || 0);
       return results.map((row: any) => ({
         ...row,
         createdAt: new Date(row.created_at as number),
@@ -52,8 +74,9 @@ const dbQueryInterface = {
     },
   },
   messages: {
-    findFirst: async ({ where }: { where: { id: string } }) => {
-      const result = queryOne('SELECT * FROM messages WHERE id = ?', [where.id]);
+    findFirst: async ({ where }: { where: any }) => {
+      const condition = parseWhere(where);
+      const result = queryOne('SELECT * FROM messages WHERE id = ?', [condition.id]);
       if (!result) return null;
       return {
         ...result,
@@ -63,10 +86,10 @@ const dbQueryInterface = {
       };
     },
     findMany: async ({ where, orderBy, limit }: any) => {
-      if (where?.sessionId) {
-        return getMessagesBySession(where.sessionId, limit || 50);
+      const condition = parseWhere(where);
+      if (condition?.sessionId) {
+        return getMessagesBySession(condition.sessionId, limit || 50);
       }
-      // Fallback: return all messages (shouldn't happen in practice)
       const results = query('SELECT * FROM messages LIMIT ?', [limit || 50]);
       return results;
     },
@@ -75,15 +98,16 @@ const dbQueryInterface = {
 
 // Insert/delete/update operations
 const dbOperations = {
-  insert: (table: string) => ({
+  insert: (table: any) => ({
     values: async (data: any) => {
-      if (table === 'chatSessions') {
+      const tableName = getTableName(table);
+      if (tableName === 'chatSessions') {
         createSession({
           id: data.id,
           title: data.title,
           model: data.model,
         });
-      } else if (table === 'messages') {
+      } else if (tableName === 'messages') {
         createMessage({
           id: data.id,
           sessionId: data.sessionId,
@@ -97,23 +121,30 @@ const dbOperations = {
       return { id: data.id };
     },
   }),
-  delete: (table: string) => ({
-    where: async (condition: any) => {
-      if (table === 'chatSessions' && condition?.id) {
+  delete: (table: any) => ({
+    where: async (where: any) => {
+      const tableName = getTableName(table);
+      const condition = parseWhere(where);
+      if (tableName === 'chatSessions' && condition?.id) {
         deleteSession(condition.id);
-      } else if (table === 'messages' && condition?.id) {
+      } else if (tableName === 'messages' && condition?.id) {
         deleteMessage(condition.id);
+      } else if (tableName === 'messages' && condition?.sessionId) {
+        // Special case: delete all messages for a session
+        run('DELETE FROM messages WHERE session_id = ?', [condition.sessionId]);
       }
     },
   }),
-  update: (table: string) => ({
+  update: (table: any) => ({
     set: (data: any) => ({
-      where: async (condition: any) => {
-        if (table === 'chatSessions' && condition?.id) {
+      where: async (where: any) => {
+        const tableName = getTableName(table);
+        const condition = parseWhere(where);
+        if (tableName === 'chatSessions' && condition?.id) {
           if (data.updatedAt) {
             updateSessionTimestamp(condition.id);
           }
-        } else if (table === 'messages' && condition?.id) {
+        } else if (tableName === 'messages' && condition?.id) {
           if (data.content !== undefined) {
             updateMessageContent(condition.id, data.content);
           }
